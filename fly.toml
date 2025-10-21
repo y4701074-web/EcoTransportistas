@@ -1,0 +1,12 @@
+app = "ecotransportistas"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = false
+
+[[http_service.checks]]
+  interval = "10s"
+  timeout = "2s"
+  method = "GET"
+  path = "/"
