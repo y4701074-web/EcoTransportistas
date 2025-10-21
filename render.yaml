@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: ecotransportistas-bot
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
+    envVars:
+      - key: BOT_TOKEN
+        value: 8405097042:AAF-ytt1h5o-woafNakYGDHcoi1mh_S5pQ8
+      - key: ADMIN_SUPREMO
+        value: "@Y_0304"
