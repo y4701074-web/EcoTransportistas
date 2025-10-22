@@ -1,28 +1,3 @@
-from http.server import HTTPServer, BaseHTTPRequestHandler
-import threading
-
-class HealthHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.write(b'OK')
-    
-    def log_message(self, format, *args):
-        pass  # Silenciar logs
-
-def start_health_server():
-    port = int(os.environ.get('PORT', 8000))
-    server = HTTPServer(('0.0.0.0', port), HealthHandler)
-    server.serve_forever()
-
-# Iniciar servidor de health check
-if __name__ == '__main__':
-    health_thread = threading.Thread(target=start_health_server, daemon=True)
-    health_thread.start()
-    
-    # Tu código actual del bot...
-
-
 from config import logger
 from db import init_db
 from scheduler import init_scheduler
@@ -67,3 +42,46 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+from flask import Flask
+import threading
+import os
+
+# === SERVICIO WEB PARA HEALTH CHECKS ===
+def create_health_server():
+    """Servidor simple para que Koyeb verifique que la app está viva"""
+    app = Flask(__name__)
+    
+    @app.route('/')
+    def home():
+        return '✅ EcoTransportistas Bot está funcionando!'
+    
+    @app.route('/health')
+    def health():
+        return {'status': 'healthy', 'service': 'ecotransportistas-bot'}, 200
+    
+    # Usar el puerto que Koyeb espera (8000)
+    port = int(os.environ.get('PORT', 8000))
+    print(f"🔄 Iniciando servidor health check en puerto {port}")
+    app.run(host='0.0.0.0', port=port, debug=False)
+
+# === INICIAR TODO ===
+if __name__ == '__main__':
+    # Iniciar servidor de health checks en segundo plano
+    health_thread = threading.Thread(target=create_health_server, daemon=True)
+    health_thread.start()
+    
+    # Tu código existente del bot (NO lo modifiques)
+    logger.info("🚀 Iniciando EcoTransportistas Bot en Koyeb...")
+    
+    if init_db():
+        logger.info("✅ Base de datos lista")
+    else:
+        logger.error("❌ Error crítico con base de datos")
+        exit(1)
+    
+    try:
+        logger.info("🤖 Bot iniciado - Escuchando mensajes...")
+        bot.infinity_polling(timeout=60)
+    except Exception as e:
+        logger.error(f"❌ Error en el bot: {e}")
