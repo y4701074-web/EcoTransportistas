@@ -1,3 +1,28 @@
+from http.server import HTTPServer, BaseHTTPRequestHandler
+import threading
+
+class HealthHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b'OK')
+    
+    def log_message(self, format, *args):
+        pass  # Silenciar logs
+
+def start_health_server():
+    port = int(os.environ.get('PORT', 8000))
+    server = HTTPServer(('0.0.0.0', port), HealthHandler)
+    server.serve_forever()
+
+# Iniciar servidor de health check
+if __name__ == '__main__':
+    health_thread = threading.Thread(target=start_health_server, daemon=True)
+    health_thread.start()
+    
+    # Tu código actual del bot...
+
+
 from config import logger
 from db import init_db
 from scheduler import init_scheduler
