@@ -1,7 +1,5 @@
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
 .env
 *.db
-*.sqlite3
+__pycache__/
+*.log
+*.pyc
