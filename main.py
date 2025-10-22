@@ -43,24 +43,26 @@ def main():
 if __name__ == '__main__':
     main()
 
+import multiprocessing
+import os
+import time
 import http.server
 import socketserver
-import threading
-import os
 
-# === SERVICIO WEB MUY SIMPLE ===
-class HealthHandler(http.server.SimpleHTTPRequestHandler):
-    def do_GET(self):
-        if self.path == '/health' or self.path == '/':
-            self.send_response(200)
-            self.send_header('Content-type', 'text/plain')
-            self.end_headers()
-            self.wfile.write(b'OK')
-        else:
-            self.send_response(404)
-            self.end_headers()
-
-def start_health_server():
+# === SERVICIO WEB EN PROCESO SEPARADO ===
+def health_server_process():
+    """Servidor web que corre en proceso separado"""
+    class HealthHandler(http.server.SimpleHTTPRequestHandler):
+        def do_GET(self):
+            if self.path in ['/health', '/']:
+                self.send_response(200)
+                self.send_header('Content-type', 'text/plain')
+                self.end_headers()
+                self.wfile.write(b'OK')
+            else:
+                self.send_response(404)
+                self.end_headers()
+    
     port = 8000
     with socketserver.TCPServer(("", port), HealthHandler) as httpd:
         print(f"✅ Health server running on port {port}")
@@ -68,11 +70,15 @@ def start_health_server():
 
 # === INICIAR TODO ===
 if __name__ == '__main__':
-    # Iniciar health server en hilo separado
-    health_thread = threading.Thread(target=start_health_server, daemon=True)
-    health_thread.start()
+    # INICIAR SERVIDOR WEB PRIMERO (en proceso separado)
+    health_process = multiprocessing.Process(target=health_server_process)
+    health_process.daemon = True
+    health_process.start()
     
-    # Tu código existente del bot
+    print("🔄 Servidor health check iniciado...")
+    time.sleep(2)  # Dar tiempo a que el servidor arranque
+    
+    # LUEGO INICIAR EL BOT
     logger.info("🚀 Iniciando EcoTransportistas Bot en Koyeb...")
     
     if init_db():
