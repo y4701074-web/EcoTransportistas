@@ -43,35 +43,37 @@ def main():
 if __name__ == '__main__':
     main()
 
+# TODO TU CÓDIGO ACTUAL DEL BOT (NO LO BORRES)
+# ... [todo tu código existente] ...
+# ... [tus handlers, funciones, etc.] ...
+# ... [hasta el final del archivo] ...
+
+# === AGREGAR ESTO AL FINAL DEL ARCHIVO ===
 from flask import Flask
 import threading
 import os
 
-# === SERVICIO WEB PARA HEALTH CHECKS ===
-def create_health_server():
-    """Servidor simple para que Koyeb verifique que la app está viva"""
+def health_server():
     app = Flask(__name__)
+    
+    @app.route('/health')
+    def health_check():
+        return 'OK', 200
     
     @app.route('/')
     def home():
-        return '✅ EcoTransportistas Bot está funcionando!'
+        return '✅ Bot funcionando'
     
-    @app.route('/health')
-    def health():
-        return {'status': 'healthy', 'service': 'ecotransportistas-bot'}, 200
-    
-    # Usar el puerto que Koyeb espera (8000)
-    port = int(os.environ.get('PORT', 8000))
-    print(f"🔄 Iniciando servidor health check en puerto {port}")
+    port = 8000
     app.run(host='0.0.0.0', port=port, debug=False)
 
-# === INICIAR TODO ===
+# === ESTA PARTE FINAL REEMPLAZA LO QUE TENÍAS ===
 if __name__ == '__main__':
-    # Iniciar servidor de health checks en segundo plano
-    health_thread = threading.Thread(target=create_health_server, daemon=True)
+    # Iniciar health server en hilo separado
+    health_thread = threading.Thread(target=health_server, daemon=True)
     health_thread.start()
     
-    # Tu código existente del bot (NO lo modifiques)
+    # Tu código existente del bot (NO lo cambies)
     logger.info("🚀 Iniciando EcoTransportistas Bot en Koyeb...")
     
     if init_db():
