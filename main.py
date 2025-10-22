@@ -43,37 +43,36 @@ def main():
 if __name__ == '__main__':
     main()
 
-# TODO TU CÓDIGO ACTUAL DEL BOT (NO LO BORRES)
-# ... [todo tu código existente] ...
-# ... [tus handlers, funciones, etc.] ...
-# ... [hasta el final del archivo] ...
-
-# === AGREGAR ESTO AL FINAL DEL ARCHIVO ===
-from flask import Flask
+import http.server
+import socketserver
 import threading
 import os
 
-def health_server():
-    app = Flask(__name__)
-    
-    @app.route('/health')
-    def health_check():
-        return 'OK', 200
-    
-    @app.route('/')
-    def home():
-        return '✅ Bot funcionando'
-    
-    port = 8000
-    app.run(host='0.0.0.0', port=port, debug=False)
+# === SERVICIO WEB MUY SIMPLE ===
+class HealthHandler(http.server.SimpleHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/health' or self.path == '/':
+            self.send_response(200)
+            self.send_header('Content-type', 'text/plain')
+            self.end_headers()
+            self.wfile.write(b'OK')
+        else:
+            self.send_response(404)
+            self.end_headers()
 
-# === ESTA PARTE FINAL REEMPLAZA LO QUE TENÍAS ===
+def start_health_server():
+    port = 8000
+    with socketserver.TCPServer(("", port), HealthHandler) as httpd:
+        print(f"✅ Health server running on port {port}")
+        httpd.serve_forever()
+
+# === INICIAR TODO ===
 if __name__ == '__main__':
     # Iniciar health server en hilo separado
-    health_thread = threading.Thread(target=health_server, daemon=True)
+    health_thread = threading.Thread(target=start_health_server, daemon=True)
     health_thread.start()
     
-    # Tu código existente del bot (NO lo cambies)
+    # Tu código existente del bot
     logger.info("🚀 Iniciando EcoTransportistas Bot en Koyeb...")
     
     if init_db():
