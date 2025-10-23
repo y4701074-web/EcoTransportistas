@@ -4,6 +4,8 @@ from db import get_user_by_telegram_id, DATABASE_FILE
 from utils import get_message
 from config import logger
 import keyboards
+# Importar la función de registro para redirigir a usuarios no registrados
+from .registro import send_welcome # ¡NUEVA IMPORTACIÓN!
 
 # ESTA ES LA FUNCIÓN QUE TENÍA EL ERROR DE INDENTACIÓN
 def show_main_menu(chat_id, user_id):
@@ -36,14 +38,22 @@ def handle_all_messages(message):
     
     user = message.from_user
     
-    # Si está en un estado (ej. 'request_description'), los handlers específicos
-    # de ese estado (definidos en handlers/solicitudes.py) se ejecutarán primero.
-    
-    # Si no está en un estado FSM, mostrar menú principal
+    # Si no está en un estado FSM, determinar si está registrado o si debe registrarse
     if user.id not in user_states:
-        show_main_menu(message.chat.id, user.id)
+        
+        # 1. Intentar buscar al usuario en la base de datos
+        user_db = get_user_by_telegram_id(user.id) # Ya existe en el archivo
+        
+        if user_db:
+            # 2. Si está registrado, mostrar el menú principal (Lógica existente)
+            show_main_menu(message.chat.id, user.id)
+        else:
+            # 3. Si NO está registrado, iniciar el proceso de bienvenida/registro
+            # Esto simula el envío del comando /start por parte del usuario.
+            send_welcome(message) # ¡NUEVA LÓGICA!
+            
     else:
         # Si está en un estado pero el mensaje no coincide con ningún
         # handler de estado, recordarle que complete el proceso.
-        bot.reply_to(message, "⚠️ Completa el proceso actual primero")
-      
+        bot.reply_to(message, "⚠️ Completa el proceso actual primero") # Lógica existente
+
