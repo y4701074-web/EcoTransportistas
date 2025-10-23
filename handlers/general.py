@@ -4,7 +4,7 @@ from db import get_user_by_telegram_id, DATABASE_FILE
 from utils import get_message
 from config import logger
 import keyboards
-# ELIMINAR ESTA LÍNEA: from .registro import send_welcome 
+# Importación eliminada: from .registro import send_welcome 
 
 
 # ... (Función show_main_menu sin cambios)
@@ -34,10 +34,8 @@ def handle_all_messages(message):
         else:
             # 3. Si NO está registrado, iniciar el proceso de bienvenida/registro
             
-            # --- SOLUCIÓN AL ERROR CIRCULAR ---
-            # Importamos la función aquí, justo antes de usarla,
-            # para que el módulo general.py pueda cargarse completamente
-            # antes de intentar cargar registro.py.
+            # ¡SOLUCIÓN AL ERROR CIRCULAR!
+            # La importación se hace localmente aquí.
             from .registro import send_welcome 
             
             send_welcome(message) 
