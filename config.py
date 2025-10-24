@@ -11,6 +11,7 @@ logging.basicConfig(
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
+logger.info("✅ Instancia del bot creada.") # Agregué un mensaje de inicio para el log
 
 # Configuración - VARIABLES DE ENTORNO CRÍTICAS
 
@@ -30,8 +31,29 @@ except ValueError:
     raise ValueError("ADMIN_SUPREMO_ID must be an integer.")
 
 # 👑 Nombre del Administrador Supremo: Cargado del entorno.
-# ESTA LÍNEA ES LA CORRECCIÓN FALTANTE que resuelve el 'ImportError'
 ADMIN_SUPREMO = os.getenv('ADMIN_SUPREMO', 'Admin Supremo')
+
+
+# --- 🛑 CONSTANTES DE ESTADO Y ROL (FSM) - ¡CORRECCIÓN CLAVE! 🛑 ---
+# Estas constantes son necesarias para las importaciones en registro.py
+
+# Estados del Proceso de Registro
+STATE_WAITING_LANGUAGE = 'waiting_language'
+STATE_WAITING_NAME = 'waiting_name'
+STATE_WAITING_PHONE = 'waiting_phone' 
+STATE_WAITING_ROLE = 'waiting_role'
+STATE_WAITING_PROVINCIA = 'waiting_provincia'
+STATE_WAITING_ZONAS = 'waiting_zonas'
+STATE_ACTIVE = 'active'
+STATE_BANNED = 'banned'
+
+# Roles de Usuario
+ROLE_PENDIENTE = 'pendiente'
+ROLE_SOLICITANTE = 'solicitante'
+ROLE_TRANSPORTISTA = 'transportista'
+ROLE_AMBOS = 'ambos'
+
+# --- FIN DE CONSTANTES FSM ---
 
 
 # Diccionarios multiidioma
