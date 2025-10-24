@@ -10,7 +10,6 @@ if not BOT_TOKEN:
     bot = None
 else:
     try:
-        # Se usa 'HTML' como parse_mode por defecto
         bot = telebot.TeleBot(BOT_TOKEN, parse_mode='HTML')
         logger.info("✅ Instancia del bot creada.")
     except Exception as e:
