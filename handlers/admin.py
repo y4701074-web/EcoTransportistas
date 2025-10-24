@@ -1,79 +1,50 @@
-import sqlite3
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+# handlers/admin.py
 from bot_instance import bot
-from db import log_audit, get_user_by_telegram_id, DATABASE_FILE
-from utils import get_message
-from config import logger, ADMIN_SUPREMO
+from config import logger, ADMIN_SUPREMO_ID, ADMIN_SUPREMO_USERNAME
+from db import get_db_connection
 
+# --- Funciones de Utilidad ---
+def is_supremo(chat_id):
+    """Verifica si el chat_id corresponde al Administrador Supremo."""
+    return chat_id == ADMIN_SUPREMO_ID
+
+def get_admin_level(chat_id):
+    """Obtiene el nivel de administración (0=No Admin, 9=Supremo)."""
+    conn = get_db_connection()
+    user = conn.execute("SELECT es_admin FROM usuarios WHERE chat_id = ?", (chat_id,)).fetchone()
+    conn.close()
+    return user['es_admin'] if user else 0
+
+# --- Comandos del Admin Supremo ---
+@bot.message_handler(commands=['admin_panel_supremo', 'admin_crear_pais', 'admin_crear_provincia', 'admin_crear_zona', 'admin_designar_supremo'])
+def admin_supremo_commands(message):
+    chat_id = message.chat.id
+    command = message.text.split()[0]
+    
+    if get_admin_level(chat_id) != 9:
+        bot.send_message(chat_id, "Acceso denegado. Este comando es exclusivo del Admin Supremo.")
+        return
+    
+    if command == '/admin_panel_supremo':
+        msg = f"👑 **PANEL SUPREMO - {ADMIN_SUPREMO_USERNAME}**\n\n"
+        msg += "COMANDOS EXCLUSIVOS:\n"
+        msg += "  - /admin_crear_pais [nombre_pais] [admin_id]\n"
+        msg += "  - /admin_crear_provincia [pais_id] [nombre_provincia] [admin_id]\n"
+        msg += "  - /admin_crear_zona [provincia_id] [nombre_zona] [admin_id]\n"
+        msg += "  - /admin_designar_supremo [nuevo_admin_id]\n\n"
+        msg += "¡Control total sobre la jerarquía territorial y de administración!"
+        bot.send_message(chat_id, msg)
+    else:
+        # Lógica para crear elementos territoriales (pendiente)
+        bot.send_message(chat_id, f"Comando '{command}' recibido. Implementación de lógica de creación en curso...")
+
+# --- Panel General de Administración ---
 @bot.message_handler(commands=['admin_panel'])
-def admin_panel(message):
-    try:
-        user = message.from_user
-        
-        with sqlite3.connect(DATABASE_FILE, timeout=10) as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                SELECT a.nivel, a.region_asignada 
-                FROM administradores a
-                JOIN usuarios u ON a.usuario_id = u.id
-                WHERE u.telegram_id = ? AND a.estado = 'activo'
-            ''', (user.id,))
-            
-            admin_data = cursor.fetchone()
-            
-            is_supremo = str(user.id) == ADMIN_SUPREMO
-            
-            if not admin_data and not is_supremo:
-                bot.reply_to(message, get_message('error_no_permission', user.id))
-                return
-        
-            if admin_data:
-                nivel = admin_data[0]
-                region = admin_data[1]
-            else:
-                nivel = "supremo"
-                region = "Todo Cuba"
-            
-            cursor.execute("SELECT COUNT(*) FROM usuarios")
-            total_usuarios = cursor.fetchone()[0]
-            
-            cursor.execute("SELECT COUNT(*) FROM usuarios WHERE estado = 'activo'")
-            usuarios_activos = cursor.fetchone()[0]
-            
-            cursor.execute("SELECT COUNT(*) FROM solicitudes")
-            total_solicitudes = cursor.fetchone()[0]
-            
-            cursor.execute("SELECT COUNT(*) FROM solicitudes WHERE estado = 'activa'")
-            solicitudes_activas = cursor.fetchone()[0]
-            
-            admin_text = f"""
-👑 *Panel de Administración*
-
-*Tu Nivel:* {nivel.title()}
-*Tu Región:* {region}
-
-📊 *Estadísticas del Sistema:*
-👥 Total usuarios: {total_usuarios}
-✅ Usuarios activos: {usuarios_activos}
-📦 Total solicitudes: {total_solicitudes}
-🟢 Solicitudes activas: {solicitudes_activas}
-
-🔧 *Acciones disponibles:*
-• Ver usuarios de tu región
-• Gestionar solicitudes
-            """
-            
-            markup = InlineKeyboardMarkup()
-            if nivel == "supremo":
-                markup.add(InlineKeyboardButton("🌍 Gestionar Admin", callback_data="admin_manage_admins"))
-            
-            markup.add(InlineKeyboardButton("👥 Ver Usuarios", callback_data="admin_view_users"))
-            markup.add(InlineKeyboardButton("📊 Estadísticas Detalladas", callback_data="admin_stats"))
-            
-            bot.reply_to(message, admin_text, reply_markup=markup, parse_mode='Markdown')
-            
-            log_audit("admin_panel_accessed", user.id)
-            
-    except Exception as e:
-        logger.error(f"Error en panel admin: {e}")
-          
+def admin_panel_general(message):
+    chat_id = message.chat.id
+    admin_level = get_admin_level(chat_id)
+    
+    if admin_level > 0:
+        bot.send_message(chat_id, f"Bienvenido al Panel de Administración (Nivel {admin_level}).")
+    else:
+        bot.send_message(chat_id, "No tienes permisos de administración.")
