@@ -1,20 +1,16 @@
 # db.py
 import sqlite3
-from config import logger
+from config import logger, ADMIN_SUPREMO_ID, ADMIN_SUPREMO_USERNAME
 import os
 
 DB_NAME = "ecotransportistas.db"
 DB_PATH = os.path.join(os.getcwd(), DB_NAME)
 
-# Esquema de la Base de Datos basado en el informe
 SCHEMA = """
--- 👑 config_global: Configuración del sistema
-CREATE TABLE IF NOT EXISTS config_global (
-    clave TEXT PRIMARY KEY,
-    valor TEXT
-);
+-- 👑 config_global
+CREATE TABLE IF NOT EXISTS config_global (clave TEXT PRIMARY KEY, valor TEXT);
 
--- 🌍 paises, 🏙️ provincias, 🗺️ zonas: Jerarquía territorial
+-- 🌍 paises, 🏙️ provincias, 🗺️ zonas
 CREATE TABLE IF NOT EXISTS paises (
     id INTEGER PRIMARY KEY,
     nombre TEXT UNIQUE NOT NULL,
@@ -28,8 +24,7 @@ CREATE TABLE IF NOT EXISTS provincias (
     pais_id INTEGER,
     admin_id INTEGER,
     FOREIGN KEY(pais_id) REFERENCES paises(id),
-    FOREIGN KEY(admin_id) REFERENCES usuarios(id),
-    UNIQUE(nombre, pais_id)
+    FOREIGN KEY(admin_id) REFERENCES usuarios(id)
 );
 
 CREATE TABLE IF NOT EXISTS zonas (
@@ -38,11 +33,10 @@ CREATE TABLE IF NOT EXISTS zonas (
     provincia_id INTEGER,
     admin_id INTEGER,
     FOREIGN KEY(provincia_id) REFERENCES provincias(id),
-    FOREIGN KEY(admin_id) REFERENCES usuarios(id),
-    UNIQUE(nombre, provincia_id)
+    FOREIGN KEY(admin_id) REFERENCES usuarios(id)
 );
 
--- 👤 usuarios: Todos los usuarios registrados
+-- 👤 usuarios
 CREATE TABLE IF NOT EXISTS usuarios (
     id INTEGER PRIMARY KEY, 
     chat_id INTEGER UNIQUE NOT NULL,
@@ -50,25 +44,24 @@ CREATE TABLE IF NOT EXISTS usuarios (
     nombre TEXT,
     telefono TEXT,
     idioma TEXT DEFAULT 'ES',
-    rol TEXT NOT NULL,          -- SOLICITANTE, TRANSPORTISTA, AMBOS
-    estado TEXT,                -- WAIT_LANG, WAIT_ROLE, ACTIVE, etc.
-    es_admin INTEGER DEFAULT 0, -- 0: No, 1: País, 2: Provincia, 3: Zona, 9: Supremo
+    rol TEXT NOT NULL DEFAULT 'SOLICITANTE',
+    estado TEXT DEFAULT 'WAIT_LANG',
+    es_admin INTEGER DEFAULT 0, -- 0: No, 9: Supremo
     provincia_base_id INTEGER,  -- Opcional
-    zonas_base TEXT,            -- Zonas base (IDs separadas por coma, opcional)
+    zonas_base TEXT,            -- Opcional (IDs separadas por coma)
     FOREIGN KEY(provincia_base_id) REFERENCES provincias(id)
 );
 
 -- 🚚 Configuracion de Transportistas
 CREATE TABLE IF NOT EXISTS transportista_config (
     user_id INTEGER PRIMARY KEY,
-    categorias TEXT NOT NULL,  -- IDs de CATEGORIES separadas por coma (1,2,3,4)
-    zonas_servicio TEXT,       -- IDs de ZONAS separadas por coma (opcional)
-    vehiculos TEXT,            -- Nombres/IDs de vehículos específicos
+    categorias TEXT NOT NULL,  -- IDs de CATEGORIES separadas por coma
+    zonas_servicio TEXT,       -- IDs de ZONAS de servicio
+    vehiculos TEXT,            -- Vehículos específicos
     FOREIGN KEY(user_id) REFERENCES usuarios(id)
 );
 
-
--- 📦 solicitudes: Solicitudes activas
+-- 📦 solicitudes
 CREATE TABLE IF NOT EXISTS solicitudes (
     id INTEGER PRIMARY KEY,
     solicitante_id INTEGER,
@@ -78,48 +71,20 @@ CREATE TABLE IF NOT EXISTS solicitudes (
     direccion_destino TEXT NOT NULL,
     provincia_id INTEGER,
     zona_id INTEGER,
-    estado TEXT, -- ACTIVA, CERRADA, EN_PROCESO
-    FOREIGN KEY(solicitante_id) REFERENCES usuarios(id),
-    FOREIGN KEY(provincia_id) REFERENCES provincias(id),
-    FOREIGN KEY(zona_id) REFERENCES zonas(id)
+    estado TEXT, -- ACTIVA, EN_PROCESO, CERRADA
+    FOREIGN KEY(solicitante_id) REFERENCES usuarios(id)
 );
 
--- 📂 solicitudes_cerradas: Historial
-CREATE TABLE IF NOT EXISTS solicitudes_cerradas (
-    id INTEGER PRIMARY KEY,
-    solicitud_id INTEGER UNIQUE,
-    transportista_id INTEGER,
-    comision_aplicada REAL,
-    fecha_cierre DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(solicitud_id) REFERENCES solicitudes(id),
-    FOREIGN KEY(transportista_id) REFERENCES usuarios(id)
-);
-
--- 💰 pagos (control de comisiones y rentas)
-CREATE TABLE IF NOT EXISTS pagos (
-    id INTEGER PRIMARY KEY,
-    user_id INTEGER,
-    monto REAL,
-    tipo TEXT, -- COMISION_RECIBIDA, RENTA_PAGADA
-    fecha DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(user_id) REFERENCES usuarios(id)
-);
-
--- 📊 auditoria (registro de auditoría)
-CREATE TABLE IF NOT EXISTS auditoria (
-    id INTEGER PRIMARY KEY,
-    user_id INTEGER,
-    accion TEXT NOT NULL,
-    detalles TEXT,
-    fecha DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+-- 📂 solicitudes_cerradas, 💰 pagos, 📊 auditoria, etc. (Tablas adicionales)
+CREATE TABLE IF NOT EXISTS solicitudes_cerradas (id INTEGER PRIMARY KEY, solicitud_id INTEGER UNIQUE, transportista_id INTEGER, comision_aplicada REAL);
+CREATE TABLE IF NOT EXISTS pagos (id INTEGER PRIMARY KEY, user_id INTEGER, monto REAL, tipo TEXT, fecha DATETIME DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS auditoria (id INTEGER PRIMARY KEY, user_id INTEGER, accion TEXT NOT NULL, detalles TEXT, fecha DATETIME DEFAULT CURRENT_TIMESTAMP);
 """
-
 
 def get_db_connection():
     """Retorna una conexión a la base de datos."""
     conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row # Permite acceder a las columnas por nombre
+    conn.row_factory = sqlite3.Row 
     return conn
 
 def init_db():
@@ -128,17 +93,19 @@ def init_db():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Ejecutar el esquema de creación de tablas
         cursor.executescript(SCHEMA)
         
-        # Corrección: Asegurar que el ADMIN SUPREMO exista en la tabla usuarios si no está.
-        # Esto es CRÍTICO para resolver el "Problema: @Y_0304 no es reconocido como admin supremo"
-        # NOTA: Debes sustituir 'ADMIN_SUPREMO_ID' con el ID real de tu cuenta.
-        cursor.execute("""
-            INSERT OR IGNORE INTO usuarios (id, chat_id, username, rol, estado, es_admin)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (ADMIN_SUPREMO_ID, ADMIN_SUPREMO_ID, ADMIN_SUPREMO_USERNAME, 'ADMIN', 'ACTIVE', 9))
-        
+        # Corrección Crítica: Asegurar que el ADMIN SUPREMO exista y tenga rol 9 (Supremo)
+        if ADMIN_SUPREMO_ID != 0:
+            cursor.execute("""
+                INSERT OR REPLACE INTO usuarios (chat_id, username, rol, estado, es_admin)
+                VALUES (?, ?, ?, ?, ?)
+            """, (ADMIN_SUPREMO_ID, ADMIN_SUPREMO_USERNAME, 'ADMIN', 'ACTIVE', 9))
+            
+            # Nota: Usamos INSERT OR REPLACE para actualizar si ya existía el chat_id
+            
+            logger.info(f"✅ Admin Supremo ({ADMIN_SUPREMO_USERNAME}) asegurado en DB con ID: {ADMIN_SUPREMO_ID}.")
+
         conn.commit()
         conn.close()
         
