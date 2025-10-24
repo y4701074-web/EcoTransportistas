@@ -18,9 +18,12 @@ if not BOT_TOKEN:
     logger.error("❌ NO BOT_TOKEN PROVIDED")
     raise ValueError("BOT_TOKEN environment variable is required")
 
-# 👑 ID del Administrador Supremo: Debe ser un número entero (tu ID: 6288842089)
-# Si no está en el .env, usa un valor de ejemplo (y lanza un error si es el ejemplo)
-ADMIN_SUPREMO_ID_STR = os.environ.get('ADMIN_SUPREMO_ID', '6288842089')
+# 👑 Nombre del Administrador Supremo
+ADMIN_SUPREMO = os.environ.get('ADMIN_SUPREMO', 'Admin Supremo').lstrip('@')
+
+# 👑 ID del Administrador Supremo: Debe ser un número entero.
+# 🟢 ¡LÍNEA AÑADIDA PARA SOLUCIONAR EL ERROR CRÍTICO!
+ADMIN_SUPREMO_ID_STR = os.getenv('ADMIN_SUPREMO_ID', '0') # Usa '0' o un ID por defecto
 try:
     ADMIN_SUPREMO_ID = int(ADMIN_SUPREMO_ID_STR)
 except ValueError:
@@ -30,7 +33,7 @@ except ValueError:
 # Diccionarios multiidioma
 MESSAGES = {
     'es': {
-        'welcome': "🚀 *¡Bienvenido a EcoTransportistas!* 🌟\n\n👋 Hola {name}!\n\n🌍 *¿Qué es EcoTransportistas?*\nEs tu plataforma para conectar *transportistas* con *personas que necesitan enviar cosas*.\n\n📦 *¿Eres Solicitante?* → Encuentra transporte rápido y confiable\n🚚 *¿Eres Transportista?* → Consigue más clientes en tu zona\n\n🛠️ *¿Cómo empezar?*\n1️⃣ Usa /registro para crear tu perfil\n2️⃣ Elige tu tipo de usuario\n3️⃣ ¡Comienza a conectar!",
+        'welcome': "🚀 *¡Bienvenido a EcoTransportistas!* 🌟\n\n👋 Hola {name}!\n\n🌍 *¿Qué es EcoTransportistas?*\nEs tu plataforma para conectar *transportistas* con *personas que necesitan enviar cosas* en toda Cuba.\n\n📦 *¿Eres Solicitante?* → Encuentra transporte rápido y confiable\n🚚 *¿Eres Transportista?* → Consigue más clientes en tu zona\n\n🛠️ *¿Cómo empezar?*\n1️⃣ Usa /registro para crear tu perfil\n2️⃣ Elige tu tipo de usuario\n3️⃣ ¡Comienza a conectar!",
         'choose_language': "🌍 *Selecciona tu idioma / Choose your language:*",
         'registration_start': "📝 *Iniciando registro...*\n\nPor favor comparte tu número de teléfono para verificar tu identidad:",
         'phone_received': "✅ Teléfono recibido. Ahora, ¿cuál es tu nombre completo?",
@@ -39,16 +42,10 @@ MESSAGES = {
         'country_selected_continue': "✅ País seleccionado: {pais}. Ahora, por favor, **selecciona la provincia**.",
         'profile_complete': "🎉 *¡Registro Completo!* 🎉\n\n**Resumen de tu Perfil:**\n- 👤 Nombre: {name}\n- 📞 Teléfono: {phone}\n- 🗺️ País: {pais}\n- 🗺️ Provincia: {provincia}\n- 🚚 Rol: {tipo}\n\n¡Usa el menú para empezar!",
         'admin_panel_welcome': "👑 *Panel de Administración Supremo* 👑\n\n¿Qué deseas gestionar?",
-        
-        # Nuevos mensajes de error
         'error_no_permission': "❌ *Acceso denegado*. No tienes permisos para esta acción.",
         'error_not_registered': "❌ No estás registrado. Usa /start o /registro para empezar.",
-        
-        # Botones (Se manejan en keyboards.py, pero los textos de respuesta aquí)
         'main_menu': "⚙️ *Menú Principal*\n\nSelecciona la acción que deseas realizar:",
         'my_profile_info': "👤 *Tu Perfil*\n\n- Nombre: {name}\n- Teléfono: {phone}\n- Rol: {tipo}\n- País: {pais}\n- Provincia: {provincia}\n- Estado: {estado}\n\n*Información de Transportista:*\n- Carga Máxima: {capacidad}\n- Vehículos: {vehiculos}\n- Zonas de Trabajo: {zonas_trabajo}",
-        
-        # Solicitudes
         'request_vehicle_type': "🚗 ¿Qué tipo de vehículo necesitas para el transporte?",
         'request_cargo_type': "📦 ¿Cuál es el tipo de carga?",
         'request_description': "📝 Por favor, proporciona una breve descripción de la carga (ej: 2 cajas, 1 cama matrimonial, etc.)",
@@ -60,8 +57,6 @@ MESSAGES = {
         'error_not_solicitante': "❌ Solo los usuarios *Solicitantes* o *Ambos* pueden crear solicitudes.",
         'error_not_transportista': "❌ Solo los usuarios *Transportistas* o *Ambos* pueden ver solicitudes.",
         'no_requests_found': "😔 No se encontraron solicitudes activas en tus zonas de trabajo con tu filtro de carga.",
-        
-        # Interacciones
         'request_accepted': "✅ *Solicitud aceptada*. El solicitante ha sido notificado para la confirmación.",
         'request_not_available': "❌ Esta solicitud ya no está disponible (fue tomada o procesada).",
         'request_expired': "⏰ *La solicitud #{id} ha expirado*\\n\\nEl tiempo de confirmación terminó. La solicitud está disponible de nuevo.",
@@ -69,12 +64,18 @@ MESSAGES = {
         'request_processed': "❌ Esta solicitud ya ha sido procesada",
         'request_confirmed_solicitante': "✅ *Solicitud confirmada con éxito!*\\n\\nEl transportista ha sido notificado y se pondrá en contacto contigo pronto.",
         'request_rejected': "❌ *Rechazado*. El solicitante ha rechazado la asignación. La solicitud está activa de nuevo.",
+        'request_cancelled': "❌ Solicitud cancelada",
     },
     'en': {
-        # ... (Mantener o adaptar si es necesario)
+        'no_requests_found': "😔 No active requests found in your area currently.",
+        'request_cancelled': "❌ Request cancelled",
+        'request_not_available': "❌ This request is no longer available",
+        'request_expired': "⏰ *Request #{id} expired*\\n\\nThe confirmation time has expired. The request is available again.",
+        'confirmation_sent': "✅ Request accepted. Waiting for confirmation...",
+        'request_processed': "❌ This request has already been processed",
+        'request_confirmed_solicitante': "✅ *Request confirmed successfully!*\\n\\nThe transporter has been notified and will contact you shortly.",
     }
 }
 
-# --- Estructura geográfica estática ELIMINADA ---
-# La lógica ahora usa la base de datos de manera dinámica.
-# (PROVINCIAS_CUBA, ZONAS_POR_PROVINCIA han sido eliminadas)
+# --- Estructuras geográficas estáticas ELIMINADAS ---
+# La lógica ahora debe usar la base de datos de forma dinámica.
