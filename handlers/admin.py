@@ -1,12 +1,17 @@
+# admin.py
+
 import sqlite3
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardRemove
 from bot_instance import bot, user_states
 from db import log_audit, get_user_by_telegram_id, DATABASE_FILE, get_admin_data
 from utils import get_message
-from config import logger
-ADMIN_SUPREMO_ID, ADMIN_SUPREMO
+# 🚨 LÍNEA CORREGIDA Y COMPLETA 🚨
+from config import logger, ADMIN_SUPREMO_ID, ADMIN_SUPREMO 
 import keyboards
 import geography_db # Nueva dependencia
+
+# ESTADOS FSM PARA EL FLUJO DE ADMINISTRACIÓN
+# ... (el resto del archivo)
 
 
 # ESTADOS FSM PARA EL FLUJO DE ADMINISTRACIÓN
