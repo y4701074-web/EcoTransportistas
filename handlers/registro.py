@@ -1,10 +1,15 @@
 # handlers/registro.py
 from bot_instance import bot
-from config import logger, STATE_WAITING_LANGUAGE, STATE_WAITING_ROLE, STATE_WAITING_PROVINCIA, STATE_WAITING_ZONAS, STATE_ACTIVE, ROLE_SOLICITANTE, ROLE_TRANSPORTISTA, ROLE_AMBOS
+from config import (
+    logger, 
+    STATE_WAITING_LANGUAGE, STATE_WAITING_ROLE, STATE_WAITING_PROVINCIA, 
+    STATE_WAITING_ZONAS, STATE_ACTIVE, ROLE_PENDIENTE,
+    ROLE_SOLICITANTE, ROLE_TRANSPORTISTA, ROLE_AMBOS
+)
 from db import get_db_connection
 import telebot
 
-# --- Funciones de Utilidad (Deberían estar en un módulo 'utils') ---
+# --- Funciones de Utilidad (Necesarias para el estado persistente) ---
 def get_user_state(chat_id):
     conn = get_db_connection()
     user = conn.execute("SELECT estado FROM usuarios WHERE chat_id = ?", (chat_id,)).fetchone()
@@ -16,9 +21,8 @@ def set_user_state(chat_id, state):
     conn.execute("UPDATE usuarios SET estado = ? WHERE chat_id = ?", (state, chat_id))
     conn.commit()
     conn.close()
-# --- Fin Funciones de Utilidad ---
 
-# Handler para /start - Inicia el flujo
+# --- Handler para /start ---
 @bot.message_handler(commands=['start'])
 def start_command(message):
     chat_id = message.chat.id
@@ -28,51 +32,84 @@ def start_command(message):
     conn.close()
     
     if not user:
-        # Insertar registro inicial con estado WAIT_LANG
+        # 1. Usuario nuevo: Iniciar flujo
         conn = get_db_connection()
-        conn.execute("INSERT INTO usuarios (chat_id, username, estado) VALUES (?, ?, ?)", 
-                     (chat_id, message.chat.username, STATE_WAITING_LANGUAGE))
+        conn.execute("""
+            INSERT INTO usuarios (chat_id, username, estado, rol) 
+            VALUES (?, ?, ?, ?)
+        """, (chat_id, message.chat.username, STATE_WAITING_LANGUAGE, ROLE_PENDIENTE))
         conn.commit()
         conn.close()
 
-        # 2. ACCIÓN: Selección de idioma (ES/EN)
         markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
         markup.add("Español 🇪🇸", "English 🇬🇧")
-        bot.send_message(chat_id, "¿Qué idioma prefieres? / Which language do you prefer?", reply_markup=markup)
+        bot.send_message(chat_id, "👋 ¡Bienvenido! ¿Qué idioma prefieres? / Which language do you prefer?", reply_markup=markup)
         
-    elif user['estado'] != STATE_ACTIVE:
-        bot.send_message(chat_id, f"Tu registro está en curso. Por favor, completa el paso actual: {user['estado']}.")
+    elif user['estado'] == STATE_ACTIVE:
+        # 3. Usuario activo
+        bot.send_message(chat_id, "¡Ya estás registrado y activo! Usa /menu para ver tus opciones.")
+        
     else:
-        bot.send_message(chat_id, "¡Ya estás registrado y activo! Usa /menu.")
+        # Lógica de Reinicio/Continuación: Si el registro quedó a medias
+        msg = f"Tu registro quedó pendiente. Estado actual: **{user['estado']}**."
+        
+        if user['estado'] == STATE_WAITING_LANGUAGE:
+             msg += "\n\nPor favor, selecciona tu idioma nuevamente para comenzar."
+             markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+             markup.add("Español 🇪🇸", "English 🇬🇧")
+             bot.send_message(chat_id, msg, reply_markup=markup)
+        # Nota: En un flujo completo, aquí se manejarían los estados WAIT_NAME, WAIT_PHONE, etc.
+        elif user['estado'] == STATE_WAITING_ROLE:
+            from handlers.general import handle_role_prompt # Se importa la función que genera el teclado de roles
+            handle_role_prompt(message)
+        else:
+            bot.send_message(chat_id, msg + "\n\nPor favor, continúa con el paso de registro que te corresponde.")
 
 
-# Flujo para la Elección de Rol (Paso 5)
-@bot.message_handler(func=lambda m: get_user_state(m.chat.id) == 'WAIT_PHONE' or get_user_state(m.chat.id) == 'WAIT_NAME') # Placeholder
-# Deberías cambiar 'WAIT_NAME' y 'WAIT_PHONE' por el estado real antes de elegir rol
-def handle_role_prompt(message):
+# --- Flujo de Registro 1: Idioma ---
+@bot.message_handler(func=lambda m: get_user_state(m.chat.id) == STATE_WAITING_LANGUAGE)
+def handle_language_selection(message):
     chat_id = message.chat.id
-    set_user_state(chat_id, STATE_WAITING_ROLE) # Mover a este estado después de Nombre/Teléfono
+    lang = 'ES' if 'español' in message.text.lower() else 'EN'
 
-    markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
-    markup.row("📦 Solo Solicitante")
-    markup.row("🚚 Solo Transportista")
-    markup.row("🔄 Ambos (Solicitante + Transportista)")
+    conn = get_db_connection()
+    # Se actualiza el estado al siguiente paso (WAIT_NAME)
+    conn.execute("UPDATE usuarios SET idioma = ?, estado = ? WHERE chat_id = ?", 
+                 (lang, 'WAIT_NAME', chat_id)) 
+    conn.commit()
+    conn.close()
     
-    bot.send_message(chat_id, "Paso 5: ¿Cuál será tu rol principal en el sistema?", reply_markup=markup)
+    set_user_state(chat_id, 'WAIT_NAME')
+    bot.send_message(chat_id, "Idioma guardado. Por favor, envíame tu nombre completo.", reply_markup=telebot.types.ReplyKeyboardRemove())
 
+# --- Lógica de Rol (Simulación de estado WAIT_NAME -> WAIT_ROLE) ---
+@bot.message_handler(func=lambda m: get_user_state(m.chat.id) == 'WAIT_NAME')
+def handle_name_and_move_to_role(message):
+    # Simulación de que ya recibimos nombre y pasamos a rol
+    from handlers.general import handle_role_prompt
+    
+    conn = get_db_connection()
+    conn.execute("UPDATE usuarios SET nombre = ?, estado = ? WHERE chat_id = ?", 
+                 (message.text, STATE_WAITING_ROLE, message.chat.id))
+    conn.commit()
+    conn.close()
+    
+    handle_role_prompt(message) # Llama a la función que pide el rol
+
+# --- Flujo de Rol (Paso 5) ---
 @bot.message_handler(func=lambda m: get_user_state(m.chat.id) == STATE_WAITING_ROLE)
 def handle_role_selection(message):
     chat_id = message.chat.id
     text = message.text
     
     role = None
-    if 'solicitante' in text.lower():
+    if 'solo solicitante' in text.lower():
         role = ROLE_SOLICITANTE
-    elif 'transportista' in text.lower() and 'solo' in text.lower():
+    elif 'solo transportista' in text.lower():
         role = ROLE_TRANSPORTISTA
     elif 'ambos' in text.lower() or '🔄' in text:
-        role = ROLE_AMBOS # CORRECCIÓN IMPLEMENTADA: Manejo del rol Ambos
-
+        role = ROLE_AMBOS
+        
     if role:
         conn = get_db_connection()
         conn.execute("UPDATE usuarios SET rol = ? WHERE chat_id = ?", (role, chat_id))
@@ -85,43 +122,37 @@ def handle_role_selection(message):
         markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
         markup.add("➡️ Saltar este paso (Provincia)") 
         
-        msg = f"Rol ({role}) registrado. Ahora, **opcionalmente**, selecciona tu provincia base o salta este paso."
+        msg = f"Rol ({role}) registrado.\n\n**OPCIONAL:** Selecciona tu provincia base o salta este paso."
         bot.send_message(chat_id, msg, reply_markup=markup)
+        
     else:
         bot.send_message(chat_id, "Opción no válida. Por favor, selecciona uno de los botones.")
 
 
-# Flujo para Zonas Opcionales (Paso 6)
+# --- Flujo de Zonas Opcionales (Paso 6) ---
 @bot.message_handler(func=lambda m: get_user_state(m.chat.id) == STATE_WAITING_PROVINCIA)
 def handle_provincia_selection(message):
     chat_id = message.chat.id
     
     if message.text == "➡️ Saltar este paso (Provincia)":
-        # Saltar Provincia. Pasar a la opción de Zonas.
-        set_user_state(chat_id, STATE_WAITING_ZONAS)
-        
-        markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
-        markup.add("➡️ Saltar este paso (Zonas)") 
-        
-        bot.send_message(chat_id, "Provincia omitida. Ahora, **opcionalmente**, selecciona tus zonas base o salta este paso.", reply_markup=markup)
-        return
-
-    # Si NO salta, registrar provincia y avanzar a Zonas.
-    # ... Lógica para registrar provincia ...
+        pass # No se hace nada en la DB, solo se avanza
+    else:
+         # Lógica para registrar provincia (se necesita un ID válido)
+         pass
+    
     set_user_state(chat_id, STATE_WAITING_ZONAS)
-    bot.send_message(chat_id, "Provincia registrada. Continúa con las Zonas.")
+    
+    markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+    markup.add("➡️ Saltar este paso (Zonas)") 
+    
+    msg = "Configuración de Provincia gestionada.\n\n**OPCIONAL:** Puedes seleccionar zonas específicas o salta para terminar."
+    bot.send_message(chat_id, msg, reply_markup=markup)
 
 
 @bot.message_handler(func=lambda m: get_user_state(m.chat.id) == STATE_WAITING_ZONAS)
 def handle_zonas_selection(message):
     chat_id = message.chat.id
     
-    if message.text == "➡️ Saltar este paso (Zonas)":
-        # Se omitió la provincia y las zonas.
-        pass
-    # else:
-        # ... Lógica para registrar zonas ...
-
     # 7. ACTIVACIÓN: Usuario operativo en sistema
     set_user_state(chat_id, STATE_ACTIVE)
     
