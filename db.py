@@ -6,6 +6,7 @@ import os
 DB_NAME = "ecotransportistas.db"
 DB_PATH = os.path.join(os.getcwd(), DB_NAME)
 
+# Esquema de la Base de Datos
 SCHEMA = """
 -- 👑 config_global
 CREATE TABLE IF NOT EXISTS config_global (clave TEXT PRIMARY KEY, valor TEXT);
@@ -14,26 +15,21 @@ CREATE TABLE IF NOT EXISTS config_global (clave TEXT PRIMARY KEY, valor TEXT);
 CREATE TABLE IF NOT EXISTS paises (
     id INTEGER PRIMARY KEY,
     nombre TEXT UNIQUE NOT NULL,
-    admin_id INTEGER,
-    FOREIGN KEY(admin_id) REFERENCES usuarios(id)
+    admin_id INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS provincias (
     id INTEGER PRIMARY KEY,
     nombre TEXT NOT NULL,
     pais_id INTEGER,
-    admin_id INTEGER,
-    FOREIGN KEY(pais_id) REFERENCES paises(id),
-    FOREIGN KEY(admin_id) REFERENCES usuarios(id)
+    admin_id INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS zonas (
     id INTEGER PRIMARY KEY,
     nombre TEXT NOT NULL,
     provincia_id INTEGER,
-    admin_id INTEGER,
-    FOREIGN KEY(provincia_id) REFERENCES provincias(id),
-    FOREIGN KEY(admin_id) REFERENCES usuarios(id)
+    admin_id INTEGER
 );
 
 -- 👤 usuarios
@@ -44,21 +40,19 @@ CREATE TABLE IF NOT EXISTS usuarios (
     nombre TEXT,
     telefono TEXT,
     idioma TEXT DEFAULT 'ES',
-    rol TEXT NOT NULL DEFAULT 'SOLICITANTE',
+    rol TEXT NOT NULL DEFAULT 'PENDIENTE',
     estado TEXT DEFAULT 'WAIT_LANG',
-    es_admin INTEGER DEFAULT 0, -- 0: No, 9: Supremo
-    provincia_base_id INTEGER,  -- Opcional
-    zonas_base TEXT,            -- Opcional (IDs separadas por coma)
-    FOREIGN KEY(provincia_base_id) REFERENCES provincias(id)
+    es_admin INTEGER DEFAULT 0, -- 0: No, 1: País, 2: Provincia, 3: Zona, 9: Supremo
+    provincia_base_id INTEGER,  
+    zonas_base TEXT             
 );
 
 -- 🚚 Configuracion de Transportistas
 CREATE TABLE IF NOT EXISTS transportista_config (
     user_id INTEGER PRIMARY KEY,
-    categorias TEXT NOT NULL,  -- IDs de CATEGORIES separadas por coma
-    zonas_servicio TEXT,       -- IDs de ZONAS de servicio
-    vehiculos TEXT,            -- Vehículos específicos
-    FOREIGN KEY(user_id) REFERENCES usuarios(id)
+    categorias TEXT NOT NULL, 
+    zonas_servicio TEXT,       
+    vehiculos TEXT            
 );
 
 -- 📦 solicitudes
@@ -71,11 +65,10 @@ CREATE TABLE IF NOT EXISTS solicitudes (
     direccion_destino TEXT NOT NULL,
     provincia_id INTEGER,
     zona_id INTEGER,
-    estado TEXT, -- ACTIVA, EN_PROCESO, CERRADA
-    FOREIGN KEY(solicitante_id) REFERENCES usuarios(id)
+    estado TEXT 
 );
 
--- 📂 solicitudes_cerradas, 💰 pagos, 📊 auditoria, etc. (Tablas adicionales)
+-- 📂 solicitudes_cerradas, 💰 pagos, 📊 auditoria, etc.
 CREATE TABLE IF NOT EXISTS solicitudes_cerradas (id INTEGER PRIMARY KEY, solicitud_id INTEGER UNIQUE, transportista_id INTEGER, comision_aplicada REAL);
 CREATE TABLE IF NOT EXISTS pagos (id INTEGER PRIMARY KEY, user_id INTEGER, monto REAL, tipo TEXT, fecha DATETIME DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS auditoria (id INTEGER PRIMARY KEY, user_id INTEGER, accion TEXT NOT NULL, detalles TEXT, fecha DATETIME DEFAULT CURRENT_TIMESTAMP);
@@ -101,8 +94,6 @@ def init_db():
                 INSERT OR REPLACE INTO usuarios (chat_id, username, rol, estado, es_admin)
                 VALUES (?, ?, ?, ?, ?)
             """, (ADMIN_SUPREMO_ID, ADMIN_SUPREMO_USERNAME, 'ADMIN', 'ACTIVE', 9))
-            
-            # Nota: Usamos INSERT OR REPLACE para actualizar si ya existía el chat_id
             
             logger.info(f"✅ Admin Supremo ({ADMIN_SUPREMO_USERNAME}) asegurado en DB con ID: {ADMIN_SUPREMO_ID}.")
 
