@@ -35,7 +35,6 @@ def admin_supremo_commands(message):
         msg += "¡Control total sobre la jerarquía territorial y de administración!"
         bot.send_message(chat_id, msg)
     else:
-        # Lógica para crear elementos territoriales (pendiente)
         bot.send_message(chat_id, f"Comando '{command}' recibido. Implementación de lógica de creación en curso...")
 
 # --- Panel General de Administración ---
