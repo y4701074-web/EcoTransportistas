@@ -21,15 +21,7 @@ def get_db_connection():
         # Lanza una excepción para detener la operación si la conexión falla
         raise ConnectionError(f"No se pudo conectar a la DB: {e}")
 # -------------------------------------------------------------
-
-
-def init_db():
-    try:
-        with sqlite3.connect(DATABASE_FILE, timeout=10) as conn:
-            cursor = conn.cursor()
-            
-           
- # --- TABLA DE USUARIOS ACTUALIZADA ---
+# --- TABLA DE USUARIOS ACTUALIZADA ---
 
             # Se cambian las columnas de texto a IDs y se añade zonas_trabajo_ids
             # Las columnas originales ('pais', 'provincia', 'zona') se eliminan o se ignoran si existen
@@ -38,7 +30,14 @@ def init_db():
             # renombrar/dropear y recrear, o crear una nueva tabla.
             # Aquí, crearemos la tabla con el nuevo esquema si no existe.
             # En un entorno real, habría que hacer migraciones.
+
+
+def init_db():
+    try:
+        with sqlite3.connect(DATABASE_FILE, timeout=10) as conn:
+            cursor = conn.cursor()
             
+           
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS usuarios (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
