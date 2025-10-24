@@ -3,7 +3,6 @@ import logging
 import os
 from dotenv import load_dotenv
 
-# Nota: load_dotenv() se mantiene para pruebas locales, pero Koyeb usará sus propias variables.
 load_dotenv()
 
 # --- Configuración de Logging ---
@@ -22,10 +21,11 @@ logger = logging.getLogger("EcoTransportistasBot")
 
 # ID del Administrador Supremo (@Y_0304)
 # **CRÍTICO:** Debes establecer ADMIN_SUPREMO_ID en Koyeb con el ID numérico de tu cuenta.
-ADMIN_SUPREMO_ID = int(os.getenv("ADMIN_SUPREMO_ID", "0")) # Usar 0 como default seguro
+ADMIN_SUPREMO_ID = int(os.getenv("ADMIN_SUPREMO_ID", "0")) 
 ADMIN_SUPREMO_USERNAME = "@Y_0304"
 
 # Roles de Usuario
+ROLE_PENDIENTE = 'PENDIENTE' # Rol inicial antes de selección
 ROLE_SOLICITANTE = 'SOLICITANTE'
 ROLE_TRANSPORTISTA = 'TRANSPORTISTA'
 ROLE_AMBOS = 'AMBOS' # Solicitante + Transportista
@@ -35,8 +35,8 @@ STATE_WAITING_LANGUAGE = 'WAIT_LANG'
 STATE_WAITING_NAME = 'WAIT_NAME'
 STATE_WAITING_PHONE = 'WAIT_PHONE'
 STATE_WAITING_ROLE = 'WAIT_ROLE'
-STATE_WAITING_PROVINCIA = 'WAIT_PROVINCIA' # Opcional
-STATE_WAITING_ZONAS = 'WAIT_ZONAS' # Opcional
+STATE_WAITING_PROVINCIA = 'WAIT_PROVINCIA' 
+STATE_WAITING_ZONAS = 'WAIT_ZONAS' 
 STATE_ACTIVE = 'ACTIVE'
 
 # Nuevas Categorías de Carga
