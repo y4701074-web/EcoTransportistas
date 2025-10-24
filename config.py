@@ -11,7 +11,7 @@ logging.basicConfig(
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
-logger.info("✅ Instancia del bot creada.") # Agregué un mensaje de inicio para el log
+logger.info("✅ Instancia del bot creada.") 
 
 # Configuración - VARIABLES DE ENTORNO CRÍTICAS
 
@@ -34,7 +34,7 @@ except ValueError:
 ADMIN_SUPREMO = os.getenv('ADMIN_SUPREMO', 'Admin Supremo')
 
 
-# --- 🛑 CONSTANTES DE ESTADO Y ROL (FSM) - ¡CORRECCIÓN CLAVE! 🛑 ---
+# --- CONSTANTES DE ESTADO Y ROL (FSM) ---
 # Estas constantes son necesarias para las importaciones en registro.py
 
 # Estados del Proceso de Registro
@@ -53,7 +53,23 @@ ROLE_SOLICITANTE = 'solicitante'
 ROLE_TRANSPORTISTA = 'transportista'
 ROLE_AMBOS = 'ambos'
 
-# --- FIN DE CONSTANTES FSM ---
+# --- 🚨 CONSTANTES DE CATEGORÍAS (Solución al error 'CATEGORIES') 🚨 ---
+CATEGORIES = {
+    'CARGO_TIPO': [
+        'Paquete pequeño', 
+        'Caja mediana', 
+        'Mueble grande', 
+        'Material de construcción', 
+        'Especial/Otro'
+    ],
+    'VEHICULO_TIPO': [
+        'Moto/Bicicleta', 
+        'Auto/Camioneta', 
+        'Camión pequeño (hasta 2T)', 
+        'Camión grande (más de 2T)'
+    ]
+}
+# --- FIN DE CONSTANTES DE CATEGORÍAS ---
 
 
 # Diccionarios multiidioma
