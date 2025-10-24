@@ -1,8 +1,27 @@
 import sqlite3
 import json # Nueva importación para manejar JSON en DB (zonas_trabajo_ids)
 from config import logger, ADMIN_SUPREMO, ADMIN_SUPREMO_ID
+# Nota: La importación de 'logger' aquí es clave para manejar errores.
 
 DATABASE_FILE = 'ecotransportistas.db'
+
+# 🚨 FUNCIÓN CRÍTICA DE CONEXIÓN (Solución al ImportError) 🚨
+def get_db_connection():
+    """
+    Establece y devuelve una conexión a la base de datos SQLite.
+    Configura el 'row_factory' para acceder a las columnas por nombre.
+    """
+    try:
+        conn = sqlite3.connect(DATABASE_FILE)
+        # Permite acceder a los resultados por nombre de columna
+        conn.row_factory = sqlite3.Row
+        return conn
+    except sqlite3.Error as e:
+        logger.error(f"Error conectando a la base de datos {DATABASE_FILE}: {e}")
+        # Lanza una excepción para detener la operación si la conexión falla
+        raise ConnectionError(f"No se pudo conectar a la DB: {e}")
+# -------------------------------------------------------------
+
 
 def init_db():
     try:
@@ -10,6 +29,7 @@ def init_db():
             cursor = conn.cursor()
             
             # --- TABLA DE USUARIOS ACTUALIZADA ---
+
             # Se cambian las columnas de texto a IDs y se añade zonas_trabajo_ids
             # Las columnas originales ('pais', 'provincia', 'zona') se eliminan o se ignoran si existen
             
