@@ -28,7 +28,8 @@ def init_db():
         with sqlite3.connect(DATABASE_FILE, timeout=10) as conn:
             cursor = conn.cursor()
             
-            # --- TABLA DE USUARIOS ACTUALIZADA ---
+           
+ # --- TABLA DE USUARIOS ACTUALIZADA ---
 
             # Se cambian las columnas de texto a IDs y se añade zonas_trabajo_ids
             # Las columnas originales ('pais', 'provincia', 'zona') se eliminan o se ignoran si existen
