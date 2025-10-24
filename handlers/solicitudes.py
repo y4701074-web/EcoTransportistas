@@ -21,6 +21,6 @@ def nueva_solicitud_command(message):
     msg = "📦 **NUEVA SOLICITUD**\n\n"
     msg += "Paso 1: Selecciona la categoría de transporte que necesitas:"
     
-    # Lógica: Se debe actualizar el estado del usuario para esperar la selección (e.g., STATE_WAITING_CATEGORY)
+    # Lógica: Aquí se debe cambiar el estado del usuario para esperar la selección de categoría
     
     bot.send_message(chat_id, msg, reply_markup=markup)
