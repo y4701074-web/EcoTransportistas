@@ -5,6 +5,7 @@ from config import (
     ROLE_PENDIENTE, ROLE_SOLICITANTE, ROLE_TRANSPORTISTA, ROLE_AMBOS
 )
 from db import get_user_by_telegram_id, set_user_registration_data, get_user_state, set_user_state
+from utils import get_message
 import telebot
 import keyboards
 
