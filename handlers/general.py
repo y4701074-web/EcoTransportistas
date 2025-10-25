@@ -7,10 +7,10 @@ import telebot
 # --- Funciones de Utilidad ---
 def get_user_data(chat_id):
     conn = get_db_connection()
-    user = conn.execute("SELECT estado, rol FROM usuarios WHERE chat_id = ?", (chat_id,)).fetchone()
+    # ❌ CORREGIDO: Usar telegram_id
+    user = conn.execute("SELECT estado, tipo FROM usuarios WHERE telegram_id = ?", (chat_id,)).fetchone()
     conn.close()
-    return user if user else None
-
+    
 def create_main_menu_keyboard(rol):
     """Crea el teclado del menú principal basado en el rol del usuario."""
     markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
