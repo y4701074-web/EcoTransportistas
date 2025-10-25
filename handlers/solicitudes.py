@@ -1,40 +1,78 @@
 # handlers/solicitudes.py
 from bot_instance import bot
-from config import logger, CATEGORIES, ROLE_SOLICITANTE, ROLE_AMBOS, MESSAGES
+from config import logger, CATEGORIES
+from db import get_user_by_telegram_id
 import telebot
-# Nota: get_user_by_telegram_id debe estar definido en db.py para que esto funcione
-from db import get_user_by_telegram_id 
 
 @bot.message_handler(commands=['nueva_solicitud'])
 def nueva_solicitud_command(message):
+    user = message.from_user
     chat_id = message.chat.id
-    user_data = get_user_by_telegram_id(chat_id)
     
-    # 1. Pre-verificación de rol (Se asume idioma 'es')
-    if not user_data or user_data.get('tipo') not in [ROLE_SOLICITANTE, ROLE_AMBOS]:
-        msg_error = MESSAGES['es'].get('error_not_solicitante', "❌ Solo solicitantes pueden crear solicitudes.")
-        bot.send_message(chat_id, msg_error, parse_mode="Markdown")
+    user_data = get_user_by_telegram_id(user.id)
+    if not user_data:
+        bot.send_message(chat_id, "❌ Primero completa tu registro con /start")
         return
+    
+    # Verificar que sea solicitante
+    if user_data['tipo'] not in ['solicitante', 'ambos']:
+        bot.send_message(chat_id, "❌ Esta función es solo para solicitantes")
+        return
+    
+    msg = "📦 **NUEVA SOLICITUD**\n\n"
+    msg += "Vamos a crear una nueva solicitud de transporte.\n\n"
+    msg += "**Paso 1: Tipo de Vehículo**\n"
+    msg += "Selecciona el tipo de vehículo que necesitas:"
+    
+    # Usar teclado de tipos de vehículo
+    from keyboards import get_vehicle_type_keyboard
+    markup = get_vehicle_type_keyboard()
+    
+    bot.send_message(chat_id, msg, reply_markup=markup)
 
-    # 2. Selección del Tipo de Vehículo (Primera categoría)
+# Handler para selección de tipo de vehículo
+@bot.callback_query_handler(func=lambda call: call.data.startswith('vehicle_'))
+def handle_vehicle_selection(call):
+    user = call.from_user
+    chat_id = call.message.chat.id
     
-    # 🚨 CORRECCIÓN CRÍTICA: Se debe acceder a la lista anidada 'VEHICLE_TYPES' y usarla directamente
-    vehicle_types = CATEGORIES.get('VEHICLE_TYPES', []) 
+    vehicle_type = call.data.split('_')[1]
     
-    if not vehicle_types:
-        bot.send_message(chat_id, "❌ Error de configuración: No se encontraron tipos de vehículo en CATEGORIES.")
-        return
-        
-    markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+    msg = "🚚 **Tipo de Vehículo Seleccionado**\n\n"
+    msg += f"Vehículo: {vehicle_type.title()}\n\n"
+    msg += "**Paso 2: Tipo de Carga**\n"
+    msg += "Selecciona el tipo de carga:"
     
-    # Usamos el operador * para desempaquetar la lista y añadirla como botones
-    # Esto reemplaza la lógica incorrecta del for loop y las llamadas a markup.row manuales.
-    markup.add(*vehicle_types, row_width=2) 
+    from keyboards import get_cargo_type_keyboard
+    markup = get_cargo_type_keyboard()
     
-    # Usamos el mensaje de config.py (asumiendo idioma 'es')
-    msg = MESSAGES['es'].get('request_vehicle_type', "🚗 ¿Qué tipo de vehículo necesitas para el transporte?")
+    bot.edit_message_text(
+        msg,
+        chat_id,
+        call.message.message_id,
+        reply_markup=markup
+    )
+
+# Handler para selección de tipo de carga
+@bot.callback_query_handler(func=lambda call: call.data.startswith('cargo_'))
+def handle_cargo_selection(call):
+    user = call.from_user
+    chat_id = call.message.chat.id
     
-    # Lógica de FSM: Aquí se debe cambiar el estado del usuario para esperar la selección 
-    # (Ej: set_user_state(chat_id, STATE_WAITING_VEHICLE_TYPE))
+    cargo_type = call.data.split('_')[1]
     
-    bot.send_message(chat_id, msg, reply_markup=markup, parse_mode="Markdown")
+    msg = "📦 **Tipo de Carga Seleccionado**\n\n"
+    msg += f"Carga: {cargo_type.replace('_', ' ').title()}\n\n"
+    msg += "**Paso 3: Descripción**\n"
+    msg += "Por favor, describe brevemente lo que necesitas transportar:\n"
+    msg += "(Ej: '2 cajas de ropa', '1 mueble de 2 metros', etc.)"
+    
+    # Aquí deberías guardar el estado FSM para esperar la descripción
+    # Por ahora solo mostramos el mensaje
+    bot.edit_message_text(
+        msg,
+        chat_id,
+        call.message.message_id
+    )
+    
+    # En un flujo completo, aquí cambiarías el estado del usuario para esperar la descripción
