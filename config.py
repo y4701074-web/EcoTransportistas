@@ -2,77 +2,85 @@ import os
 import logging
 from dotenv import load_dotenv
 
+# --- 1. CONFIGURACIÓN INICIAL Y LOGGING ---
+
 # Cargar variables de entorno del archivo .env (si existe)
 load_dotenv()
 
-# Configuración logging
+# Configuración básica de Logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
-logger.info("✅ Instancia del bot creada.") 
+logger.info("✅ Iniciando configuración del bot.") 
 
-# Configuración - VARIABLES DE ENTORNO CRÍTICAS
+# -------------------------------------------------------------
+# --- 2. VARIABLES DE ENTORNO CRÍTICAS (DEBEN ESTAR DEFINIDAS) ---
+# -------------------------------------------------------------
 
-# BOT_TOKEN es esencial
+# BOT_TOKEN es esencial y su ausencia detiene el inicio.
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 if not BOT_TOKEN:
-    logger.error("❌ NO BOT_TOKEN PROVIDED")
-    raise ValueError("BOT_TOKEN environment variable is required")
+    logger.error("❌ ERROR: La variable de entorno 'BOT_TOKEN' no está definida.")
+    raise SystemExit("BOT_TOKEN environment variable is required to start the bot.")
 
-# 👑 ID del Administrador Supremo: Debe ser un número entero.
-# Lo cargamos del entorno. Si no está, usamos un valor por defecto (ej. 6288842089).
-ADMIN_SUPREMO_ID_STR = os.getenv('ADMIN_SUPREMO_ID', '6288842089')
+# ID del Administrador Supremo: Se carga, se valida como entero.
+ADMIN_SUPREMO_ID_DEFAULT = '6288842089'  # ID de ejemplo
+ADMIN_SUPREMO_ID_STR = os.getenv('ADMIN_SUPREMO_ID', ADMIN_SUPREMO_ID_DEFAULT)
+
 try:
     ADMIN_SUPREMO_ID = int(ADMIN_SUPREMO_ID_STR)
 except ValueError:
-    logger.error("❌ ADMIN_SUPREMO_ID debe ser un número entero.")
-    raise ValueError("ADMIN_SUPREMO_ID must be an integer.")
+    logger.error(f"❌ ERROR: 'ADMIN_SUPREMO_ID' ('{ADMIN_SUPREMO_ID_STR}') debe ser un número entero.")
+    raise SystemExit("ADMIN_SUPREMO_ID must be an integer.")
 
-# 👑 Nombre del Administrador Supremo: Cargado del entorno.
-ADMIN_SUPREMO = os.getenv('ADMIN_SUPREMO', 'Admin Supremo')
+# Nombre del Administrador Supremo.
+ADMIN_SUPREMO_NAME = os.getenv('ADMIN_SUPREMO', 'Admin Supremo')
 
 
-# --- CONSTANTES DE ESTADO Y ROL (FSM) ---
-# Estas constantes son necesarias para las importaciones en registro.py
+# ---------------------------------------------------
+# --- 3. CONSTANTES DE ESTADO, ROL Y CATEGORÍA (FSM) ---
+# ---------------------------------------------------
 
-# Estados del Proceso de Registro
-STATE_WAITING_LANGUAGE = 'waiting_language'
-STATE_WAITING_NAME = 'waiting_name'
-STATE_WAITING_PHONE = 'waiting_phone' 
-STATE_WAITING_ROLE = 'waiting_role'
-STATE_WAITING_PROVINCIA = 'waiting_provincia'
-STATE_WAITING_ZONAS = 'waiting_zonas'
-STATE_ACTIVE = 'active'
-STATE_BANNED = 'banned'
+## Estados del Proceso de Registro (FSM States)
+FSM_STATE_WAITING_LANGUAGE = 'waiting_language'
+FSM_STATE_WAITING_NAME = 'waiting_name'
+FSM_STATE_WAITING_PHONE = 'waiting_phone' 
+FSM_STATE_WAITING_ROLE = 'waiting_role'
+FSM_STATE_WAITING_PROVINCIA = 'waiting_provincia'
+FSM_STATE_WAITING_ZONAS = 'waiting_zonas'
+FSM_STATE_ACTIVE = 'active'
+FSM_STATE_BANNED = 'banned'
 
-# Roles de Usuario
+## Roles de Usuario
 ROLE_PENDIENTE = 'pendiente'
 ROLE_SOLICITANTE = 'solicitante'
 ROLE_TRANSPORTISTA = 'transportista'
 ROLE_AMBOS = 'ambos'
 
-# --- 🚨 CONSTANTES DE CATEGORÍAS (Solución al error 'CATEGORIES') 🚨 ---
+## Constantes de Categorías
 CATEGORIES = {
-    'CARGO_TIPO': [
+    'CARGO_TYPES': [ # Tipos de carga
         'Paquete pequeño', 
         'Caja mediana', 
         'Mueble grande', 
         'Material de construcción', 
         'Especial/Otro'
     ],
-    'VEHICULO_TIPO': [
+    'VEHICLE_TYPES': [ # Tipos de vehículo
         'Moto/Bicicleta', 
         'Auto/Camioneta', 
         'Camión pequeño (hasta 2T)', 
         'Camión grande (más de 2T)'
     ]
 }
-# --- FIN DE CONSTANTES DE CATEGORÍAS ---
 
 
-# Diccionarios multiidioma
+# ----------------------------------------------
+# --- 4. DICCIONARIOS MULTIIDIOMA (MESSAGES) ---
+# ----------------------------------------------
+
 MESSAGES = {
     'es': {
         'welcome': "🚀 *¡Bienvenido a EcoTransportistas!* 🌟\n\n👋 Hola {name}!\n\n🌍 *¿Qué es EcoTransportistas?*\nEs tu plataforma para conectar *transportistas* con *personas que necesitan enviar cosas*.\n\n📦 *¿Eres Solicitante?* → Encuentra transporte rápido y confiable\n🚚 *¿Eres Transportista?* → Consigue más clientes en tu zona\n\n🛠️ *¿Cómo empezar?*\n1️⃣ Usa /registro para crear tu perfil\n2️⃣ Elige tu tipo de usuario\n3️⃣ ¡Comienza a conectar!",
@@ -84,15 +92,15 @@ MESSAGES = {
         'country_selected_continue': "✅ País seleccionado: {pais}. Ahora, por favor, **selecciona la provincia**.",
         'profile_complete': "🎉 *¡Registro Completo!* 🎉\n\n**Resumen de tu Perfil:**\n- 👤 Nombre: {name}\n- 📞 Teléfono: {phone}\n- 🗺️ País: {pais}\n- 🗺️ Provincia: {provincia}\n- 🚚 Rol: {tipo}\n\n¡Usa el menú para empezar!",
         'admin_panel_welcome': "👑 *Panel de Administración Supremo* 👑\n\n¿Qué deseas gestionar?",
-        
-        # Nuevos mensajes de error
+
+        # Mensajes de error
         'error_no_permission': "❌ *Acceso denegado*. No tienes permisos para esta acción.",
         'error_not_registered': "❌ No estás registrado. Usa /start o /registro para empezar.",
-        
-        # Botones (Se manejan en keyboards.py, pero los textos de respuesta aquí)
+
+        # Menús y Perfil
         'main_menu': "⚙️ *Menú Principal*\n\nSelecciona la acción que deseas realizar:",
         'my_profile_info': "👤 *Tu Perfil*\n\n- Nombre: {name}\n- Teléfono: {phone}\n- Rol: {tipo}\n- País: {pais}\n- Provincia: {provincia}\n- Estado: {estado}\n\n*Información de Transportista:*\n- Carga Máxima: {capacidad}\n- Vehículos: {vehiculos}\n- Zonas de Trabajo: {zonas_trabajo}",
-        
+
         # Solicitudes
         'request_vehicle_type': "🚗 ¿Qué tipo de vehículo necesitas para el transporte?",
         'request_cargo_type': "📦 ¿Cuál es el tipo de carga?",
@@ -105,7 +113,7 @@ MESSAGES = {
         'error_not_solicitante': "❌ Solo los usuarios *Solicitantes* o *Ambos* pueden crear solicitudes.",
         'error_not_transportista': "❌ Solo los usuarios *Transportistas* o *Ambos* pueden ver solicitudes.",
         'no_requests_found': "😔 No se encontraron solicitudes activas en tus zonas de trabajo con tu filtro de carga.",
-        
+
         # Interacciones
         'request_accepted': "✅ *Solicitud aceptada*. El solicitante ha sido notificado para la confirmación.",
         'request_not_available': "❌ Esta solicitud ya no está disponible (fue tomada o procesada).",
@@ -116,6 +124,6 @@ MESSAGES = {
         'request_rejected': "❌ *Rechazado*. El solicitante ha rechazado la asignación. La solicitud está activa de nuevo.",
     },
     'en': {
-        # ... (Mantener o adaptar si es necesario)
+        # ... (Agregar mensajes en inglés aquí)
     }
 }
