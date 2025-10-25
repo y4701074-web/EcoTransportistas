@@ -10,6 +10,12 @@ from config import logger, ADMIN_SUPREMO_ID, ADMIN_SUPREMO
 import keyboards
 import geography_db # Nueva dependencia
 
+# Se asume que set_user_state está disponible, generalmente con:
+# from handlers.registro import set_user_state 
+# Si el código se ejecuta desde main.py, y main.py importa todo handlers, puede que funcione.
+# Sin embargo, para seguridad, añadiremos la importación:
+from handlers.registro import set_user_state # 🚨 IMPORTACIÓN AÑADIDA
+
 # ESTADOS FSM PARA EL FLUJO DE ADMINISTRACIÓN
 # ... (el resto del archivo)
 
@@ -28,6 +34,40 @@ ADMIN_FSM = {
     'designar_admin_select_region': 'admin_designar_admin_select_region', # Guarda el ID del país/provincia/zona
 }
 
+# ------------------------------------------------------------------
+# 🚨 FUNCIÓN PARA EL COMANDO /admin (NUEVA FUNCIÓN) 🚨
+# ------------------------------------------------------------------
+@bot.message_handler(commands=['admin'])
+def admin_command(message):
+    """Maneja el comando /admin, verifica el nivel y muestra el menú."""
+    chat_id = message.chat.id
+    
+    # 1. Obtener datos de administrador
+    admin_data = get_admin_data(chat_id)
+    
+    if admin_data:
+        nivel = admin_data['nivel']
+        
+        # 2. Verificar si es Administrador (Cualquier nivel)
+        # Establecer estado del usuario para el flujo de administración
+        set_user_state(chat_id, ADMIN_FSM['start'])
+        
+        # Obtener el teclado usando la función ya definida debajo
+        markup = get_admin_main_menu_keyboard(nivel)
+
+        bot.send_message(
+            chat_id, 
+            f"👑 **PANEL DE ADMINISTRACIÓN** ({nivel.upper()})\n\nBienvenido, {message.from_user.first_name}. Selecciona una acción.",
+            parse_mode='Markdown',
+            reply_markup=markup
+        )
+            
+    else:
+        # 3. No es administrador
+        bot.send_message(chat_id, "❌ Acceso denegado. Este comando es solo para administradores.")
+# ------------------------------------------------------------------
+
+
 def get_admin_main_menu_keyboard(nivel):
     """Genera el teclado principal del panel de administración."""
     markup = InlineKeyboardMarkup(row_width=1)
@@ -35,10 +75,10 @@ def get_admin_main_menu_keyboard(nivel):
     # Menú de Creación Geográfica (Abierto al Supremo/Supremo 2 y admins regionales)
     if nivel in ('supremo', 'supremo_2'):
         markup.add(InlineKeyboardButton("🌍 Crear País", callback_data="admin_create_country"))
-        
+
     if nivel in ('supremo', 'supremo_2', 'pais'):
         markup.add(InlineKeyboardButton("📍 Crear Provincia", callback_data="admin_create_provincia"))
-        
+
     if nivel in ('supremo', 'supremo_2', 'pais', 'provincia'):
         markup.add(InlineKeyboardButton("🗺️ Crear Zona/Municipio", callback_data="admin_create_zona"))
 
@@ -51,7 +91,7 @@ def get_admin_main_menu_keyboard(nivel):
         InlineKeyboardButton("👥 Ver Usuarios", callback_data="admin_view_users"),
         InlineKeyboardButton("📊 Estadísticas Detalladas", callback_data="admin_stats")
     )
-    
+
     markup.add(InlineKeyboardButton("↩️ Volver al Menú Principal", callback_data="menu_back_main"))
     return markup
 
