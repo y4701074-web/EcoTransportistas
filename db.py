@@ -1,4 +1,4 @@
- CRÍTICA DE CONEXIÓN (Solución al ImportError) 🚨
+# CRÍTICA DE CONEXIÓN (Solución al ImportError) 🚨
 def get_db_connection():
     """
     Establece y devuelve una conexión a la base de datos SQLite.
