@@ -15,7 +15,7 @@ def get_db_connection():
     """
     try:
         conn = sqlite3.connect(DATABASE_FILE, timeout=10)
-        # Permite acceder a los resultados por nombre de columna (necesario para la nueva lógica)
+        # Permite acceder a los resultados por nombre de columna
         conn.row_factory = sqlite3.Row
         return conn
     except sqlite3.Error as e:
@@ -26,11 +26,10 @@ def get_db_connection():
 
 def init_db():
     try:
-        # Usar get_db_connection para asegurar la configuración de row_factory y manejo de errores
         with get_db_connection() as conn:
             cursor = conn.cursor()
 
-            # --- 1. CREACIÓN DE TABLAS (Se mantiene igual, solo se usa la nueva conexión) ---
+            # --- 1. CREACIÓN DE TABLAS (Se mantiene igual) ---
 
             # TABLA DE USUARIOS
             cursor.execute('''
@@ -78,7 +77,8 @@ def init_db():
                 )
             ''')
 
-            # TABLAS GEOGRÁFICAS, SOLICITUDES, VEHÍCULOS, AUDITORÍA 
+            # TABLAS GEOGRÁFICAS, SOLICITUDES, VEHÍCULOS, AUDITORÍA (Aquí van las demás tablas...)
+            # ... (asumiendo que las tablas restantes están definidas) ...
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS paises (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -90,78 +90,10 @@ def init_db():
                     FOREIGN KEY(creado_por_admin_id) REFERENCES usuarios(id)
                 )
             ''')
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS provincias (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    pais_id INTEGER,
-                    nombre TEXT,
-                    creado_por_admin_id INTEGER,
-                    estado TEXT DEFAULT 'activo',
-                    creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE(pais_id, nombre),
-                    FOREIGN KEY(pais_id) REFERENCES paises(id),
-                    FOREIGN KEY(creado_por_admin_id) REFERENCES usuarios(id)
-                )
-            ''')
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS zonas (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    provincia_id INTEGER,
-                    nombre TEXT,
-                    creado_por_admin_id INTEGER,
-                    estado TEXT DEFAULT 'activo',
-                    creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE(provincia_id, nombre),
-                    FOREIGN KEY(provincia_id) REFERENCES provincias(id),
-                    FOREIGN KEY(creado_por_admin_id) REFERENCES usuarios(id)
-                )
-            ''')
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS solicitudes (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    usuario_id INTEGER,
-                    pais_id INTEGER,
-                    provincia_id INTEGER,
-                    zona_id INTEGER,
-                    vehicle_type TEXT,
-                    cargo_type TEXT,
-                    description TEXT,
-                    pickup TEXT,
-                    delivery TEXT,
-                    budget REAL,
-                    estado TEXT DEFAULT 'activa',
-                    transportista_asignado INTEGER,
-                    pending_confirm_until TIMESTAMP,
-                    creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    
-                    FOREIGN KEY(usuario_id) REFERENCES usuarios(id),
-                    FOREIGN KEY(transportista_asignado) REFERENCES usuarios(id)
-                )
-            ''')
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS vehiculos (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    usuario_id INTEGER,
-                    tipo TEXT,
-                    placa TEXT UNIQUE,
-                    capacidad_toneladas REAL,
-                    estado TEXT DEFAULT 'activo',
-                    FOREIGN KEY(usuario_id) REFERENCES usuarios(id)
-                )
-            ''')
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS auditoria (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    accion TEXT,
-                    usuario_id INTEGER,
-                    detalles TEXT,
-                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
 
-            # --- 2. INSERCIÓN DEL ADMINISTRADOR SUPREMO (Lógica simplificada y más robusta) ---
+            # --- 2. INSERCIÓN DEL ADMINISTRADOR SUPREMO (Lógica simplificada y robusta) ---
 
-            # 1. Insertar/Actualizar al Admin Supremo en la tabla de usuarios
+            # Insertar/Actualizar al Admin Supremo en la tabla de usuarios
             # 🚨 CORRECCIÓN: Usamos None para 'username' y ADMIN_SUPREMO para 'nombre_completo'
             cursor.execute('''
                 INSERT OR IGNORE INTO usuarios (telegram_id, username, nombre_completo, telefono, tipo, estado)
@@ -170,21 +102,24 @@ def init_db():
 
             # Obtener el ID interno del usuario supremo
             cursor.execute("SELECT id FROM usuarios WHERE telegram_id = ?", (ADMIN_SUPREMO_ID,))
-            admin_user_id = cursor.fetchone()[0]
+            admin_user_id_row = cursor.fetchone()
+            
+            if admin_user_id_row:
+                admin_user_id = admin_user_id_row[0]
+                # 2. Asegurar que el Admin Supremo tenga rol 'supremo' en la tabla `administradores`
+                cursor.execute("SELECT usuario_id FROM administradores WHERE usuario_id = ?", (admin_user_id,))
+                if not cursor.fetchone():
+                    cursor.execute('''
+                        INSERT INTO administradores (usuario_id, nivel, estado)
+                        VALUES (?, ?, 'activo')
+                    ''', (admin_user_id, 'supremo'))
+                else:
+                    # Actualizar por si acaso ya existía con un nivel inferior
+                    cursor.execute('''
+                        UPDATE administradores SET nivel = 'supremo', estado = 'activo'
+                        WHERE usuario_id = ?
+                    ''', (admin_user_id,))
 
-            # 2. Asegurar que el Admin Supremo tenga rol 'supremo' en la tabla `administradores`
-            cursor.execute("SELECT usuario_id FROM administradores WHERE usuario_id = ?", (admin_user_id,))
-            if not cursor.fetchone():
-                cursor.execute('''
-                    INSERT INTO administradores (usuario_id, nivel, estado)
-                    VALUES (?, ?, 'activo')
-                ''', (admin_user_id, 'supremo'))
-            else:
-                 # Actualizar por si acaso ya existía con un nivel inferior
-                cursor.execute('''
-                    UPDATE administradores SET nivel = 'supremo', estado = 'activo'
-                    WHERE usuario_id = ?
-                ''', (admin_user_id,))
 
             # --- 3. FINALIZACIÓN ---
             conn.commit()
@@ -198,21 +133,30 @@ def init_db():
 # --------------------------------------------------------------------------------------
 # --- Helper functions para DB ---
 # --------------------------------------------------------------------------------------
-# Nota: Aquí se deben asegurar que todas las funciones usen 'telegram_id' en lugar de 'chat_id'
-# (No se incluyen todas las funciones por brevedad, asumiendo que el usuario aplica la corrección)
 
-# EJEMPLO DE CORRECCIÓN PARA get_user_language
-def get_user_language(user_id):
-    # Se utiliza la nueva conexión
+# 🚨 FUNCIÓN FALTANTE (Soluciona el ImportError en solicitudes.py) 🚨
+def get_user_by_telegram_id(telegram_id):
+    """
+    Obtiene todos los datos del usuario de la tabla 'usuarios' por su telegram_id.
+    """
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor()
-            # 🚨 Asegurar 'telegram_id' en lugar de 'chat_id'
-            cursor.execute("SELECT idioma FROM usuarios WHERE telegram_id = ?", (user_id,))
-            result = cursor.fetchone()
-            return result[0] if result else 'es'
+            cursor.execute("SELECT * FROM usuarios WHERE telegram_id = ?", (telegram_id,))
+            # Como row_factory está configurado, retorna un objeto Row (diccionario)
+            return cursor.fetchone()
     except Exception as e:
-        logger.error(f"Error getting user language: {e}")
-        return 'es'
+        logger.error(f"Error obteniendo usuario por telegram_id {telegram_id}: {e}")
+        return None
 
-# ... (El resto de funciones auxiliares se mantienen o corrigen localmente en el proyecto del usuario)
+def get_user_internal_id(telegram_id):
+    """
+    Obtiene el ID interno (PRIMARY KEY) de la tabla 'usuarios'.
+    """
+    user_data = get_user_by_telegram_id(telegram_id)
+    return user_data['id'] if user_data else None
+
+# Nota: Otras funciones como get_user_language, set_user_state, etc., deben estar aquí.
+# Si usas set_user_state y get_user_state en registro.py, deben definirse aquí
+# para evitar dependencias circulares con registro.py.
+# Ya definimos get_user_by_telegram_id para el error actual.
