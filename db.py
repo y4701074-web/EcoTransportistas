@@ -22,14 +22,15 @@ def get_db_connection():
         raise ConnectionError(f"No se pudo conectar a la DB: {e}")
 # -------------------------------------------------------------
 
-# Asegúrate de que DATABASE_FILE esté definido en tu script (ej: DATABASE_FILE = 'ecotransportistas.db')
-
 def init_db():
     try:
         # Asegurarse de que el archivo de la base de datos exista o se cree
         with sqlite3.connect(DATABASE_FILE, timeout=10) as conn:
             cursor = conn.cursor()
 
+            # --- 1. CREACIÓN DE TABLAS ---
+
+            # TABLA DE USUARIOS
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS usuarios (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -55,24 +56,10 @@ def init_db():
                 )
             ''')
             
-            # Puedes añadir más tablas aquí si es necesario
-            conn.commit() # Guardar los cambios en la base de datos
-            return True # Retorna True si la inicialización fue exitosa
+            # ❌ CORRECCIÓN IMPORTANTE: Se eliminaron el 'conn.commit()' y 'return True'
+            # que estaban aquí para que el código continúe con la creación de las otras tablas.
 
-    except sqlite3.Error as e:
-        # Usa el módulo 'logging' de Python para registrar el error
-        # Reemplaza 'config' por tu logger real si es diferente
-        import logging
-        logging.error(f"❌ Error inicializando BD: {e}")
-        return False # Retorna False si hubo un error
-
-    except Exception as e:
-        import logging
-        logging.error(f"❌ Error desconocido en init_db: {e}")
-        return False
-
-            
-            # --- TABLA DE ADMINISTRADORES ACTUALIZADA ---
+            # TABLA DE ADMINISTRADORES ACTUALIZADA
             # Se cambian las columnas de texto a IDs
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS administradores (
@@ -80,7 +67,7 @@ def init_db():
                     usuario_id INTEGER UNIQUE,
                     nivel TEXT,
                     
-                    # Nuevas columnas de ID para jurisdicción
+                    -- Nuevas columnas de ID para jurisdicción
                     pais_id INTEGER, 
                     provincia_id INTEGER,
                     zona_id INTEGER,
@@ -96,7 +83,7 @@ def init_db():
                 )
             ''')
             
-            # --- TABLAS GEOGRÁFICAS ---
+            # TABLAS GEOGRÁFICAS
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS paises (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -137,7 +124,7 @@ def init_db():
                 )
             ''')
 
-            # --- TABLA DE SOLICITUDES (Se mantiene simple, sin cambios) ---
+            # TABLA DE SOLICITUDES
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS solicitudes (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -161,7 +148,7 @@ def init_db():
                 )
             ''')
             
-            # --- TABLA DE VEHÍCULOS (Se mantiene simple) ---
+            # TABLA DE VEHÍCULOS
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS vehiculos (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -174,7 +161,7 @@ def init_db():
                 )
             ''')
 
-            # --- TABLA DE AUDITORÍA (Se mantiene) ---
+            # TABLA DE AUDITORÍA
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS auditoria (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -185,7 +172,7 @@ def init_db():
                 )
             ''')
             
-            # --- Administrador Supremo de Config.py (ADMIN_SUPREMO_ID) ---
+            # --- 2. INSERCIÓN DEL ADMINISTRADOR SUPREMO ---
             # 1. Asegurar que el Admin Supremo esté registrado en la tabla `usuarios`
             cursor.execute("SELECT id FROM usuarios WHERE telegram_id = ?", (ADMIN_SUPREMO_ID,))
             admin_user_id = cursor.fetchone()
@@ -210,6 +197,7 @@ def init_db():
                     VALUES (?, ?, NULL, NULL, NULL, 'activo')
                 ''', (admin_user_id, 'supremo'))
                 
+            # --- 3. FINALIZACIÓN ---
             conn.commit()
             logger.info("✅ Base de datos inicializada correctamente")
             return True
@@ -218,9 +206,6 @@ def init_db():
         logger.error(f"❌ Error inicializando BD: {e}")
         return False
 
-
-# --- Helper functions para DB ---
-# ... (Código anterior - Parte 1, incluyendo imports y init_db) ...
 
 # --- Helper functions para DB ---
 
@@ -329,7 +314,6 @@ def get_admin_data(telegram_id):
     except Exception as e:
         logger.error(f"Error obteniendo datos de admin para {telegram_id}: {e}")
         return None
-# ... (Código anterior - Parte 1 y Parte 2) ...
 
 def set_user_work_zones(telegram_id, zonas_trabajo_ids):
     """
