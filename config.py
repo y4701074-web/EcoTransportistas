@@ -36,7 +36,7 @@ except ValueError:
     raise SystemExit("ADMIN_SUPREMO_ID must be an integer.")
 
 # Nombre del Administrador Supremo.
-ADMIN_SUPREMO_NAME = os.getenv('ADMIN_SUPREMO', 'Admin Supremo')
+ADMIN_SUPREMO = os.getenv('ADMIN_SUPREMO', 'Admin Supremo')
 
 
 # ---------------------------------------------------
@@ -44,14 +44,15 @@ ADMIN_SUPREMO_NAME = os.getenv('ADMIN_SUPREMO', 'Admin Supremo')
 # ---------------------------------------------------
 
 ## Estados del Proceso de Registro (FSM States)
-FSM_STATE_WAITING_LANGUAGE = 'waiting_language'
-FSM_STATE_WAITING_NAME = 'waiting_name'
-FSM_STATE_WAITING_PHONE = 'waiting_phone' 
-FSM_STATE_WAITING_ROLE = 'waiting_role'
-FSM_STATE_WAITING_PROVINCIA = 'waiting_provincia'
-FSM_STATE_WAITING_ZONAS = 'waiting_zonas'
-FSM_STATE_ACTIVE = 'active'
-FSM_STATE_BANNED = 'banned'
+# 🚨 CORRECCIÓN: Renombradas a STATE_... para coincidir con la importación en registro.py
+STATE_WAITING_LANGUAGE = 'waiting_language'
+STATE_WAITING_NAME = 'waiting_name'
+STATE_WAITING_PHONE = 'waiting_phone' 
+STATE_WAITING_ROLE = 'waiting_role'
+STATE_WAITING_PROVINCIA = 'waiting_provincia'
+STATE_WAITING_ZONAS = 'waiting_zonas'
+STATE_ACTIVE = 'active'
+STATE_BANNED = 'banned'
 
 ## Roles de Usuario
 ROLE_PENDIENTE = 'pendiente'
