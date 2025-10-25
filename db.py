@@ -22,13 +22,14 @@ def get_db_connection():
         raise ConnectionError(f"No se pudo conectar a la DB: {e}")
 # -------------------------------------------------------------
 
+# Asegúrate de que DATABASE_FILE esté definido en tu script (ej: DATABASE_FILE = 'ecotransportistas.db')
 
 def init_db():
     try:
+        # Asegurarse de que el archivo de la base de datos exista o se cree
         with sqlite3.connect(DATABASE_FILE, timeout=10) as conn:
             cursor = conn.cursor()
-            
-           
+
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS usuarios (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -38,7 +39,7 @@ def init_db():
                     telefono TEXT,
                     tipo TEXT,
                     
-                    # Nuevas columnas de ID para geografía de residencia
+                    -- Nuevas columnas de ID para geografía de residencia
                     pais_id INTEGER,
                     provincia_id INTEGER,
                     zona_id INTEGER,
@@ -47,12 +48,29 @@ def init_db():
                     estado TEXT DEFAULT 'activo',
                     vehiculos TEXT DEFAULT '[]',
                     
-                    # Nueva columna para filtros de zona de trabajo del transportista
+                    -- Nueva columna para filtros de zona de trabajo del transportista
                     zonas_trabajo_ids TEXT DEFAULT '[]', 
                     
                     creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
+            
+            # Puedes añadir más tablas aquí si es necesario
+            conn.commit() # Guardar los cambios en la base de datos
+            return True # Retorna True si la inicialización fue exitosa
+
+    except sqlite3.Error as e:
+        # Usa el módulo 'logging' de Python para registrar el error
+        # Reemplaza 'config' por tu logger real si es diferente
+        import logging
+        logging.error(f"❌ Error inicializando BD: {e}")
+        return False # Retorna False si hubo un error
+
+    except Exception as e:
+        import logging
+        logging.error(f"❌ Error desconocido en init_db: {e}")
+        return False
+
             
             # --- TABLA DE ADMINISTRADORES ACTUALIZADA ---
             # Se cambian las columnas de texto a IDs
