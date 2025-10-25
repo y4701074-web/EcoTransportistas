@@ -1,6 +1,7 @@
 import sqlite3
 import json 
-from config import logger, ADMIN_SUPREMO, ADMIN_SUPREMO_ID # ADMIN_SUPREMO_ID es crítico aquí
+# 🚨 CORRECCIÓN: Usamos ADMIN_SUPREMO_NAME en lugar de ADMIN_SUPREMO
+from config import logger, ADMIN_SUPREMO_NAME, ADMIN_SUPREMO_ID 
 import os
 
 # Usamos una variable de entorno como alternativa para el archivo de la DB
@@ -77,8 +78,7 @@ def init_db():
                 )
             ''')
 
-            # TABLAS GEOGRÁFICAS, SOLICITUDES, VEHÍCULOS, AUDITORÍA (Se omiten por brevedad, asumiendo que son correctas)
-            # ... (Las definiciones de las tablas paises, provincias, zonas, solicitudes, vehiculos, auditoria se mantienen aquí)
+            # TABLAS GEOGRÁFICAS, SOLICITUDES, VEHÍCULOS, AUDITORÍA 
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS paises (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -160,19 +160,19 @@ def init_db():
             ''')
 
             # --- 2. INSERCIÓN DEL ADMINISTRADOR SUPREMO (Lógica simplificada y más robusta) ---
-            
-            # 1. Insertar/Actualizar al Admin Supremo en la tabla de usuarios (usando OR IGNORE para manejar duplicados)
+
+            # 1. Insertar/Actualizar al Admin Supremo en la tabla de usuarios
+            # 🚨 CORRECCIÓN: Se usa ADMIN_SUPREMO_NAME
             cursor.execute('''
                 INSERT OR IGNORE INTO usuarios (telegram_id, username, nombre_completo, telefono, tipo, estado)
                 VALUES (?, ?, ?, ?, ?, 'activo')
-            ''', (ADMIN_SUPREMO_ID, ADMIN_SUPREMO, "Admin Supremo", "N/A", "ambos"))
-            
-            # Obtener el ID interno del usuario supremo (siempre se hará después de la inserción)
+            ''', (ADMIN_SUPREMO_ID, ADMIN_SUPREMO_NAME, "Admin Supremo", "N/A", "ambos"))
+
+            # Obtener el ID interno del usuario supremo
             cursor.execute("SELECT id FROM usuarios WHERE telegram_id = ?", (ADMIN_SUPREMO_ID,))
             admin_user_id = cursor.fetchone()[0]
 
             # 2. Asegurar que el Admin Supremo tenga rol 'supremo' en la tabla `administradores`
-            # Usamos una inserción o reemplazo para asegurar que el nivel sea 'supremo'
             cursor.execute("SELECT usuario_id FROM administradores WHERE usuario_id = ?", (admin_user_id,))
             if not cursor.fetchone():
                 cursor.execute('''
@@ -180,7 +180,7 @@ def init_db():
                     VALUES (?, ?, 'activo')
                 ''', (admin_user_id, 'supremo'))
             else:
-                 # Actualizar por si acaso ya existía con un nivel inferior (e.g., por error)
+                 # Actualizar por si acaso ya existía con un nivel inferior
                 cursor.execute('''
                     UPDATE administradores SET nivel = 'supremo', estado = 'activo'
                     WHERE usuario_id = ?
@@ -199,8 +199,9 @@ def init_db():
 # --- Helper functions para DB ---
 # --------------------------------------------------------------------------------------
 
+# ... (El resto de las funciones auxiliares se mantienen sin cambios, ya que solo usan logger y ADMIN_SUPREMO_ID, no ADMIN_SUPREMO)
 def get_user_language(user_id):
-    # Se utiliza la nueva conexión
+# Se utiliza la nueva conexión
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor()
@@ -239,7 +240,7 @@ def get_user_by_telegram_id(user_id):
             if user_data:
                 # Convertimos la fila a diccionario para poder modificarla
                 data = dict(user_data) 
-                
+
                 # Manejo robusto de la columna JSON
                 json_string = data.get('zonas_trabajo_ids')
                 if json_string:
@@ -313,7 +314,6 @@ def get_admin_data(telegram_id):
         # 🚨 LÓGICA DE ADMINISTRADOR SUPREMO (PRIORIDAD AL ID DE ENTORNO) 🚨
         if str(telegram_id) == str(ADMIN_SUPREMO_ID):
             # Crea un objeto Row simulado con nivel 'supremo' y devuelve los datos
-            # Esto garantiza que el nivel 'supremo' siempre se respete, sin importar lo que diga la tabla
             admin_data = {
                 'id': 0, # ID ficticio o puedes buscar el real si lo necesitas, pero el nivel es la clave
                 'usuario_id': get_user_internal_id(telegram_id), # Asegura el ID interno
