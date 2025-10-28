@@ -1,21 +1,42 @@
-MIT License
+COPYLEFT LICENSE - ECO TRANSPORTISTAS BOT
+Version 1.0, Diciembre 2024
 
 Copyright (c) 2025 y4701074-web
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Este programa es software libre: usted puede redistribuirlo y/o modificarlo
+bajo los términos de la GNU General Public License publicada por
+la Free Software Foundation, ya sea la versión 3 de la Licencia, o
+(a su elección) cualquier versión posterior.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+Este programa se distribuye con la esperanza de que sea útil,
+pero SIN NINGUNA GARANTÍA; sin siquiera la garantía implícita de
+COMERCIALIZACIÓN o IDONEIDAD PARA UN PROPÓSITO PARTICULAR. 
+Consulte la GNU General Public License para más detalles.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+CLÁUSULAS ADICIONALES:
+
+1. ATRIBUCIÓN OBLIGATORIA:
+   - Todo uso, distribución o modificación debe incluir atribución visible
+   - Debe mencionar: "Basado en EcoTransportistas Bot de y4701074-web"
+   - Enlace al repositorio original obligatorio
+
+2. PROHIBICIÓN DE USO COMERCIAL SIN AUTORIZACIÓN:
+   - Se prohíbe el uso comercial sin permiso explícito por escrito
+   - Incluye: SaaS, servicios pagados, integraciones comerciales
+   - Contacto: y4701074@gmail.com para autorizaciones comerciales
+
+3. COMPARTICIÓN DE MEJORAS:
+   - Las modificaciones y mejoras deben compartirse con la comunidad
+   - Pull requests al repositorio original son bienvenidos
+   - No se permite el "fork and forget"
+
+4. PROHIBICIÓN DE APROPIACIÓN:
+   - No se permite cambiar la licencia de obras derivadas
+   - No se permite eliminar o ocultar la autoría original
+   - El código fuente debe permanecer accesible
+
+Usted debería haber recibido una copia de la GNU General Public License
+junto con este programa. Si no, vea <https://www.gnu.org/licenses/>.
+
+PARA AUTORIZACIONES COMERCIALES O USOS ESPECIALES:
+Contacte al autor en: y4701074@gmail.com
