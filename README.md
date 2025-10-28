@@ -17,4 +17,23 @@ Bot de Telegram que conecta **transportistas** con **personas que necesitan envi
 - 💵 Compara precios transparentes
 - ✅ Transportistas verificados
 
+## 📄 Licencia
+
+Este proyecto está bajo la licencia **GNU GPL v3 con cláusulas adicionales**.
+
+### 🛡️ Lo que está PERMITIDO:
+- ✅ Usar el código para proyectos personales y educativos
+- ✅ Modificar y mejorar el código
+- ✅ Distribuir copias (incluyendo la licencia original)
+- ✅ Contribuir al proyecto mediante Pull Requests
+
+### 🚫 Lo que está PROHIBIDO sin autorización:
+- ❌ Uso comercial (SaaS, servicios pagados, integraciones comerciales)
+- ❌ Cambiar o eliminar la atribución al autor original
+- ❌ Sublicenciar o vender el código
+- ❌ Ocultar el código fuente en derivados
+
+### 📞 Para autorizaciones comerciales:
+Contacta al autor en: y4701074@gmail.com
+
 **¡Conectando Cuba, un transporte a la vez!** 🇨🇺
